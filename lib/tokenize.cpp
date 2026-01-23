@@ -3,10 +3,30 @@
 #include <iostream>
 #include <string_view>
 
+
+bool Tkequal(Token* TK,const char* op)
+{
+    if (!TK || TK->get_content().empty()) return false;
+    return TK->get_content() == op;
+}
+
+
 void errorat(std::string_view TKContent , const std::string &msg) // Reports an error and exit.
 {
-    //wait imple
+    
+    std::cout << "[ERROR] " << msg << ": \"" << TKContent << "\"" << std::endl;
+    std::exit(1);
+
 };
+
+Token* Tkskip(Token* TK, const char* op)
+{
+    if(!Tkequal(TK,op))
+    {
+        errorat(TK->get_content(), "expected '" + std::string(op) + "'");
+    }
+    return TK->get_next();
+}
 
 Token* Tokenize(char* Input)
 {
@@ -14,7 +34,7 @@ Token* Tokenize(char* Input)
     Token head(TokenKind::EOF_TK,{},0);
     Token* current=&head;
 
-    while (!Input) {
+    while (*Input) {
         //sikp whitespace char
         if(std::isspace(*Input))
         {
@@ -28,22 +48,25 @@ Token* Tokenize(char* Input)
             int val=std::strtol(Input,&Input,10);
             int len=Input-temp;
 
-            current->TKnext=new Token(TokenKind::NUM,std::string_view(Input,len),val);
-            current=current->TKnext;
+            Token* new_token=new Token(TokenKind::NUM,std::string_view(temp,len),val);
+            current->set_next(new_token);
+            current=current->get_next();
             continue;
         }
         if(*Input=='+'||*Input=='-')
         {
-            current->TKnext=new Token(TokenKind::PUNCT,std::string_view(Input,1));
-            current=current->TKnext;
-            current++;
+            Token* new_token=new Token(TokenKind::PUNCT,std::string_view(Input,1));
+            current->set_next(new_token);
+            current=current->get_next();
+            Input++;
             continue;
         }
         errorat(std::string_view(Input,1),"Invalid token");
     }
     //add a EOF Token
-    current->TKnext = new Token(TokenKind::EOF_TK, std::string_view(Input, 0));\
+    Token* eof_token=new Token(TokenKind::EOF_TK, std::string_view(Input, 0));
+    current->set_next(eof_token);
 
-    return head.TKnext;
+    return head.get_next();
 
 }

@@ -10,23 +10,31 @@ int main(int argc, char** argv)
         std::exit(1);
     }
 
-    char *p = argv[1];
+    Token* token = Tokenize(argv[1]);
+
 
     std::cout<<"    .globl main\n";
     std::cout<<"main:\n";
-    //Continuing to use strtol from C standard lib for simple lexical analysis
-    std::cout<<"    mov $"<<std::strtol(p, &p ,10)<<", %rax\n";
-    while (*p) {
-        if(*p=='+')
+    //The first token must be a number
+    if((token->get_kind())!=TokenKind::NUM) {errorat(token->get_content(),"The first token must be a number");}
+    std::cout<<"    mov $"<<token->get_number()<<", %rax\n";
+    token=token->get_next();
+
+    while ((token->get_kind())!=TokenKind::EOF_TK) {
+
+        if(Tkequal(token,"+"))
         {
-            p++;
-            std::cout<<"    add $"<<std::strtol(p, &p ,10)<<", %rax\n";
+            token=Tkskip(token, "+");
+            std::cout<<"    add $"<<token->get_number()<<", %rax\n";
+            token=token->get_next();
             continue;
         }
-        if(*p=='-')
+
+        if(Tkequal(token,"-"))
         {
-            p++;
-            std::cout<<"    sub $"<<std::strtol(p, &p ,10)<<", %rax\n";
+            token=Tkskip(token, "-");
+            std::cout<<"    sub $"<<token->get_number()<<", %rax\n";
+            token=token->get_next();
             continue;
         }
          std::cerr<<"[Fatal Error]:Invalid operator\n"<<std::endl;

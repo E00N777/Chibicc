@@ -9,6 +9,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+if(NOT CMAKE_BUILD_TYPE)
+    message(STATUS "No build type selected, defaulting to Debug (Symbols enabled)")
+    set(CMAKE_BUILD_TYPE "Debug")
+endif()
+
 add_library(cc_core STATIC
     lib/tokenize.cpp
 )
