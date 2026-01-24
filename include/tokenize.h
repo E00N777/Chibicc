@@ -50,5 +50,5 @@ class Token{
 //Implement in tokenize.cpp
 Token* Tokenize(char* Input);
 Token* Tkskip(Token* TK, const char* op);
-void errorat(std::string_view TKContent , const std::string &msg);
+[[noreturn]] void errorat(std::string_view TKContent , const std::string &msg);
 bool Tkequal(Token* TK,const char* op);

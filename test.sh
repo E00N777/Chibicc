@@ -25,5 +25,9 @@ assert 0 0
 assert 42 42
 assert 7 '17-10+0'
 assert 10 ' 17 - 7+0'
+assert 9 '(1+2)*3'
+assert 1 '(1)'
+assert 47 '5+6*7'
+assert 4 '(3+5)/2'
 
 echo OK

@@ -1,6 +1,9 @@
 #include <iostream>
 #include <cstdlib>
+#include "codegen.h"
 #include "tokenize.h"
+#include "parser.h"
+#include <assert.h>
 
 int main(int argc, char** argv)
 {
@@ -11,37 +14,16 @@ int main(int argc, char** argv)
     }
 
     Token* token = Tokenize(argv[1]);
-
+    Parser parse(token);
+    Node* node = parse.parse();
 
     std::cout<<"    .globl main\n";
     std::cout<<"main:\n";
-    //The first token must be a number
-    if((token->get_kind())!=TokenKind::NUM) {errorat(token->get_content(),"The first token must be a number");}
-    std::cout<<"    mov $"<<token->get_number()<<", %rax\n";
-    token=token->get_next();
+    
+    CodeGen codegen;
+    codegen.generate(node);
 
-    while ((token->get_kind())!=TokenKind::EOF_TK) {
-
-        if(Tkequal(token,"+"))
-        {
-            token=Tkskip(token, "+");
-            std::cout<<"    add $"<<token->get_number()<<", %rax\n";
-            token=token->get_next();
-            continue;
-        }
-
-        if(Tkequal(token,"-"))
-        {
-            token=Tkskip(token, "-");
-            std::cout<<"    sub $"<<token->get_number()<<", %rax\n";
-            token=token->get_next();
-            continue;
-        }
-         std::cerr<<"[Fatal Error]:Invalid operator\n"<<std::endl;
-         return 1;
-    }
     std::cout<<"    ret\n";
-
     return 0;
 
 }

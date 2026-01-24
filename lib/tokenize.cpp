@@ -53,7 +53,7 @@ Token* Tokenize(char* Input)
             current=current->get_next();
             continue;
         }
-        if(*Input=='+'||*Input=='-')
+        if(std::ispunct(*Input))
         {
             Token* new_token=new Token(TokenKind::PUNCT,std::string_view(Input,1));
             current->set_next(new_token);
