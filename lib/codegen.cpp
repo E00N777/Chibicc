@@ -1,5 +1,6 @@
 #include <iostream>
 #include "codegen.h"
+#include "astnode.h"
 
 
 void CodeGen::push() {
@@ -13,10 +14,16 @@ void CodeGen::pop(const char* reg){
 
 void CodeGen::gen_expr(Node* node)
 {
-    if (node->get_nodekind() == NodeKind::ND_NUM) {
+    switch (node->get_nodekind()) {
+    case NodeKind::ND_NUM:
         std::cout <<"    mov $" << node->get_val() << ", %rax\n";
         return;
+    case NodeKind::ND_NEG:
+        gen_expr(node->get_lhs());
+        std::cout << "    neg %rax\n";
+        return;
     }
+
     gen_expr(node->get_rhs());
     push();
     gen_expr(node->get_lhs());

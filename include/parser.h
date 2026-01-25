@@ -10,6 +10,7 @@ class Parser{
         Node* primary();
         Node* mul();
         Node* expr();
+        Node* unary();
     public:
         Parser(Token* tk):current(tk){};
 

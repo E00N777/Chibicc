@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "astnode.h"
 #include "tokenize.h"
 
 //
@@ -28,19 +29,19 @@ Node* Parser::expr()
 //Mid level
 Node* Parser::mul()
 {
-    Node* node=primary();
+    Node* node=unary();
     for(;;)
     {
         if(Tkequal(this->current, "*"))
         {
             current=this->current->get_next();
-            node=new Node(NodeKind::ND_MUL,node,primary());
+            node=new Node(NodeKind::ND_MUL,node,unary());
             continue;
         }
         if(Tkequal(this->current, "/"))
         {
             current=this->current->get_next();
-             node=new Node(NodeKind::ND_DIV,node,primary());
+             node=new Node(NodeKind::ND_DIV,node,unary());
              continue;
         }
         return node;
@@ -67,4 +68,20 @@ Node* Parser::primary()
     errorat(current->get_content(),"expected a experssion");
 }   
 
+Node* Parser::unary()
+{
+    if(Tkequal(this->current,"+"))
+    {
+        current=this->current->get_next();
+        return unary();
+    }
+    if(Tkequal(this->current,"-"))
+    {
+        current=this->current->get_next();
+        Node* node = new Node(NodeKind::ND_NEG,unary());
+        return node;
+    }
+
+    return primary();
+}
 

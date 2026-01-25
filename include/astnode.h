@@ -7,6 +7,7 @@ enum class NodeKind
     ND_MUL, //*
     ND_DIV, // /
     ND_NUM, //integer
+    ND_NEG, // negative  -   we don't need explicitly handle positive + cuz +(10)=10
 };
 
 class Node{
@@ -18,6 +19,7 @@ class Node{
     public:
         Node(NodeKind kind): kind(kind){};
         Node(NodeKind kind,Node* lhs,Node* rhs):kind(kind),lhs(lhs),rhs(rhs){};
+        Node(NodeKind kind,Node* lhs):kind(kind),lhs(lhs){};
         Node(int val):val(val){this->kind=NodeKind::ND_NUM;}
         //================Getter====================
         NodeKind get_nodekind()
