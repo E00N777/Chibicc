@@ -43,6 +43,23 @@ void CodeGen::gen_expr(Node* node)
         std::cout << "    cqo\n";
         std::cout << "    idiv %rdi\n";
         break;
+    case NodeKind::ND_LT:
+    case NodeKind::ND_EQ:
+    case NodeKind::ND_NE:
+    case NodeKind::ND_LE:
+        std::cout << "    cmp %rdi, %rax\n";
+        if (node->get_nodekind() == NodeKind::ND_EQ)
+            std::cout << "    sete %al\n";
+        else if (node->get_nodekind() == NodeKind::ND_NE)
+            std::cout << "    setne %al\n";
+        else if (node->get_nodekind() == NodeKind::ND_LT)
+            std::cout << "    setl %al\n";
+        else if (node->get_nodekind() == NodeKind::ND_LE)
+            std::cout << "    setle %al\n";
+
+        
+        std::cout << "    movzbq %al, %rax\n"; 
+        break;
     default:
         std::cerr << "Error: invalid expression kind\n";
         exit(1);

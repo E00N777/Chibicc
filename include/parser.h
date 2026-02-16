@@ -11,6 +11,9 @@ class Parser{
         Node* mul();
         Node* expr();
         Node* unary();
+        Node* equality();
+        Node* relational();
+        Node* add();
     public:
         Parser(Token* tk):current(tk){};
 

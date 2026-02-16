@@ -8,6 +8,10 @@ enum class NodeKind
     ND_DIV, // /
     ND_NUM, //integer
     ND_NEG, // negative  -   we don't need explicitly handle positive + cuz +(10)=10
+    ND_EQ, // ==
+    ND_NE, // !=
+    ND_LT, // < less than 
+    ND_LE, // <= less than or equal to
 };
 
 class Node{

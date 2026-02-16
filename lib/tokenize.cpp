@@ -2,6 +2,11 @@
 #include <cctype>
 #include <iostream>
 #include <string_view>
+#include <cstring>
+
+
+static const char* multi_char_ops[]={"==","!=",">=","<="};
+
 
 
 bool Tkequal(Token* TK,const char* op)
@@ -26,6 +31,11 @@ Token* Tkskip(Token* TK, const char* op)
         errorat(TK->get_content(), "expected '" + std::string(op) + "'");
     }
     return TK->get_next();
+}
+
+static bool startswith(const char* p,const char* keyword)
+{
+    return std::strncmp(p,keyword,strlen(keyword)) == 0;
 }
 
 Token* Tokenize(char* Input)
@@ -53,6 +63,22 @@ Token* Tokenize(char* Input)
             current=current->get_next();
             continue;
         }
+        bool found_multi_ops = false;
+        for(const char* op : multi_char_ops)
+        {
+            
+            if(startswith(Input,op))
+            {
+                Token* new_token=new Token(TokenKind::PUNCT,std::string_view(Input,2));
+                current->set_next(new_token);
+                current=current->get_next();
+                Input+=2; // move 2 steps
+                found_multi_ops=true;
+                break;
+            }
+        }
+        if(found_multi_ops){continue;}
+
         if(std::ispunct(*Input))
         {
             Token* new_token=new Token(TokenKind::PUNCT,std::string_view(Input,1));

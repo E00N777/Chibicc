@@ -2,8 +2,74 @@
 #include "astnode.h"
 #include "tokenize.h"
 
-//
+//lowest level
 Node* Parser::expr()
+{
+    return equality();
+}
+
+Node* Parser::equality()
+{
+    Node* node=relational();
+
+    for(;;)
+    {
+        if(Tkequal(this->current,"==" ))
+        {
+            current=this->current->get_next();
+            node=new Node(NodeKind::ND_EQ,node,relational());
+            continue;
+        }
+
+        if(Tkequal(this->current,"!=" ))
+        {
+             current=this->current->get_next();
+            node=new Node(NodeKind::ND_NE,node,relational());
+            continue;
+        }
+
+        return node;
+    }
+    
+}
+
+Node* Parser::relational()
+{
+    Node* node=add();
+    for(;;)
+    {
+        if(Tkequal(this->current,">=" ))
+        {
+            current=this->current->get_next();
+            node=new Node(NodeKind::ND_LE,add(),node);
+            continue;
+        }
+        if(Tkequal(this->current,">" ))
+        {
+            current=this->current->get_next();
+            node=new Node(NodeKind::ND_LT,add(),node);
+            continue;
+        }
+        if(Tkequal(this->current,"<=" ))
+        {
+            current=this->current->get_next();
+            node=new Node(NodeKind::ND_LE,node,add());
+            continue;
+        }
+        if(Tkequal(this->current,"<" ))
+        {
+            current=this->current->get_next();
+            node=new Node(NodeKind::ND_LT,node,add());
+            continue;
+        }
+
+        return node;
+    }
+    
+}
+
+
+Node* Parser::add()
 {
     Node* node=mul();
 
