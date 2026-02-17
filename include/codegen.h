@@ -1,5 +1,6 @@
 #include "astnode.h"
 #include <iostream>
+#include <cassert>
 class CodeGen{
     public:
         void generate(Node* node){
@@ -8,7 +9,7 @@ class CodeGen{
             for(Node* n=node;n;n=n->get_nextstmt())
             {
                 gen_stmt(n);
-                if(depth==0){break;}
+                assert(depth==0);
             }
             std::cout<<"    ret\n";
         }
