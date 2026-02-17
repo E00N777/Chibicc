@@ -1,6 +1,9 @@
+#include <cerrno>
+#include <cstdlib>
 #include <iostream>
 #include "codegen.h"
 #include "astnode.h"
+#include "tokenize.h"
 
 
 void CodeGen::push() {
@@ -64,4 +67,16 @@ void CodeGen::gen_expr(Node* node)
         std::cerr << "Error: invalid expression kind\n";
         exit(1);
     }
+}
+
+void CodeGen::gen_stmt(Node* node)
+{
+    if(node->get_nodekind()==NodeKind::ND_EXPR_STMT)
+    {
+        gen_expr(node->get_lhs());
+        return;
+    }
+    std::cout<<"invalid statement!";
+    exit(1);
+    
 }

@@ -12,6 +12,7 @@ enum class NodeKind
     ND_NE, // !=
     ND_LT, // < less than 
     ND_LE, // <= less than or equal to
+    ND_EXPR_STMT, // expression for statement
 };
 
 class Node{
@@ -19,6 +20,7 @@ class Node{
         NodeKind kind;
         Node* lhs = nullptr; // lift hand side
         Node* rhs = nullptr; // right hand side
+        Node* next = nullptr; // Next node
         int val = 0;
     public:
         Node(NodeKind kind): kind(kind){};
@@ -41,6 +43,15 @@ class Node{
         Node* get_rhs()
         {
             return this->rhs;
+        }
+        Node* get_nextstmt()
+        {
+            return this->next;
+        }
+        //=======setter func========
+        void set_nextstmt(Node* nextstmt)
+        {
+            this->next=nextstmt;
         }
 
     

@@ -14,11 +14,14 @@ class Parser{
         Node* equality();
         Node* relational();
         Node* add();
+        Node* expr_stmt();
+        Node* stmt();
+        Node* program();
     public:
         Parser(Token* tk):current(tk){};
 
         Node* parse() {
-            return expr();
+            return program();
         }
 
 };

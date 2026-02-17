@@ -2,6 +2,32 @@
 #include "astnode.h"
 #include "tokenize.h"
 
+Node* Parser::program()
+{
+    Node head(NodeKind::ND_EXPR_STMT);
+    Node* cur= &head;
+    while (this->current->get_kind() != TokenKind::EOF_TK)
+    {
+        Node* stmt_node=stmt();
+        cur->set_nextstmt(stmt_node);
+        cur=cur->get_nextstmt();
+    }
+    return head.get_nextstmt();
+}
+
+Node* Parser::stmt()
+{
+    return expr_stmt();
+}
+
+Node* Parser::expr_stmt()
+{
+    Node* node =new Node(NodeKind::ND_EXPR_STMT,expr());
+    current =Tkskip(current,";");
+    return node;
+}
+
+
 //lowest level
 Node* Parser::expr()
 {
@@ -23,7 +49,7 @@ Node* Parser::equality()
 
         if(Tkequal(this->current,"!=" ))
         {
-             current=this->current->get_next();
+            current=this->current->get_next();
             node=new Node(NodeKind::ND_NE,node,relational());
             continue;
         }
@@ -150,4 +176,3 @@ Node* Parser::unary()
 
     return primary();
 }
-

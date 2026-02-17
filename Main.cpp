@@ -16,14 +16,9 @@ int main(int argc, char** argv)
     Token* token = Tokenize(argv[1]);
     Parser parse(token);
     Node* node = parse.parse();
-
-    std::cout<<"    .globl main\n";
-    std::cout<<"main:\n";
     
     CodeGen codegen;
     codegen.generate(node);
-
-    std::cout<<"    ret\n";
     return 0;
 
 }
