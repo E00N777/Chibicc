@@ -1,6 +1,6 @@
 #include "tokenize.h"
+#include "diagnostic.h"
 #include <cctype>
-#include <iostream>
 #include <string_view>
 #include <cstring>
 
@@ -16,19 +16,17 @@ bool Tkequal(Token* TK,const char* op)
 }
 
 
-void errorat(std::string_view TKContent , const std::string &msg) // Reports an error and exit.
-{
-    
-    std::cout << "[ERROR] " << msg << ": \"" << TKContent << "\"" << std::endl;
-    std::exit(1);
-
-};
+int Token::get_number() const {
+    if (this->TKind != TokenKind::NUM) {
+        diagnostic::error_at(this->TKContent, "expected a number");
+    }
+    return this->TKval;
+}
 
 Token* Tkskip(Token* TK, const char* op)
 {
-    if(!Tkequal(TK,op))
-    {
-        errorat(TK->get_content(), "expected '" + std::string(op) + "'");
+    if (!Tkequal(TK, op)) {
+        diagnostic::error_at(TK->get_content(), "expected '" + std::string(op) + "'");
     }
     return TK->get_next();
 }
@@ -38,15 +36,15 @@ static bool startswith(const char* p,const char* keyword)
     return std::strncmp(p,keyword,strlen(keyword)) == 0;
 }
 
-Token* Tokenize(char* Input)
-{
-    //Create a dummy head
+Token* Tokenize(char* Input, const char* filename) {
+    (void)filename;
+    // Create a dummy head
     Token head(TokenKind::EOF_TK,{},0);
     Token* current=&head;
 
     while (*Input) {
-        //sikp whitespace char
-        if(std::isspace(*Input))
+        // Skip whitespace
+        if (std::isspace(*Input))
         {
             Input++;
             continue;      
@@ -72,7 +70,7 @@ Token* Tokenize(char* Input)
                 Token* new_token=new Token(TokenKind::PUNCT,std::string_view(Input,2));
                 current->set_next(new_token);
                 current=current->get_next();
-                Input+=2; // move 2 steps
+                Input += 2;
                 found_multi_ops=true;
                 break;
             }
@@ -87,9 +85,9 @@ Token* Tokenize(char* Input)
             Input++;
             continue;
         }
-        errorat(std::string_view(Input,1),"Invalid token");
+        diagnostic::error_at(std::string_view(Input, 1), "invalid token");
     }
-    //add a EOF Token
+    // Append EOF token
     Token* eof_token=new Token(TokenKind::EOF_TK, std::string_view(Input, 0));
     current->set_next(eof_token);
 

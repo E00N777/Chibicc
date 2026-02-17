@@ -1,6 +1,5 @@
 #pragma once
 #include <string_view>
-#include <iostream>
 #include <string>
 
 enum class TokenKind{
@@ -25,15 +24,7 @@ class Token{
         // --- Getter Methods ---
         TokenKind get_kind() const { return TKind; }
 
-        int get_number() const
-        {
-            if(this->TKind != TokenKind::NUM)
-            {
-                std::cout<<"[ERROR]:This token is not a NUM\n";
-                std::exit(1);
-            }
-            return this->TKval;
-        }
+        int get_number() const;
         Token* get_next() const{
             return this->TKnext;
         }
@@ -47,8 +38,7 @@ class Token{
     }     
 };
 
-//Implement in tokenize.cpp
-Token* Tokenize(char* Input);
+// Implement in tokenize.cpp. Input: source code string.
+Token* Tokenize(char* Input, const char* filename = "<input>");
 Token* Tkskip(Token* TK, const char* op);
-[[noreturn]] void errorat(std::string_view TKContent , const std::string &msg);
-bool Tkequal(Token* TK,const char* op);
+bool Tkequal(Token* TK, const char* op);

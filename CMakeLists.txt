@@ -15,6 +15,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 add_library(cc_core STATIC
+    lib/diagnostic.cpp
     lib/tokenize.cpp
     lib/parser.cpp
     lib/codegen.cpp

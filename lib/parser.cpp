@@ -1,6 +1,7 @@
 #include "parser.h"
 #include "astnode.h"
 #include "tokenize.h"
+#include "diagnostic.h"
 
 Node* Parser::program()
 {
@@ -115,10 +116,9 @@ Node* Parser::add()
         }
         return node;
     }
-    errorat(current->get_content(),"Parsering failed");
 }
 
-//Mid level
+// Mid level
 Node* Parser::mul()
 {
     Node* node=unary();
@@ -138,10 +138,9 @@ Node* Parser::mul()
         }
         return node;
     }
-    errorat(current->get_content(),"Parsering failed");
 }
 
-//Top level
+// Top level
 Node* Parser::primary()
 {
     if(Tkequal(this->current,"("))
@@ -157,7 +156,7 @@ Node* Parser::primary()
         current=current->get_next();
         return node;
     }
-    errorat(current->get_content(),"expected a experssion");
+    diagnostic::error_at(current->get_content(), "expected an expression");
 }   
 
 Node* Parser::unary()

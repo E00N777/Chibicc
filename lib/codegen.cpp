@@ -1,9 +1,7 @@
-#include <cerrno>
-#include <cstdlib>
-#include <iostream>
 #include "codegen.h"
 #include "astnode.h"
-#include "tokenize.h"
+#include "diagnostic.h"
+#include <iostream>
 
 
 void CodeGen::push() {
@@ -64,8 +62,7 @@ void CodeGen::gen_expr(Node* node)
         std::cout << "    movzbq %al, %rax\n";  //movzbl will be better
         break;
     default:
-        std::cerr << "Error: invalid expression kind\n";
-        exit(1);
+        diagnostic::fatal("invalid expression kind in codegen");
     }
 }
 
@@ -76,7 +73,5 @@ void CodeGen::gen_stmt(Node* node)
         gen_expr(node->get_lhs());
         return;
     }
-    std::cout<<"invalid statement!";
-    exit(1);
-    
+    diagnostic::fatal("invalid statement kind in codegen");
 }
