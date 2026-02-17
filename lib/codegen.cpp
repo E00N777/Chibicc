@@ -58,7 +58,7 @@ void CodeGen::gen_expr(Node* node)
             std::cout << "    setle %al\n";
 
         
-        std::cout << "    movzbq %al, %rax\n"; 
+        std::cout << "    movzbq %al, %rax\n";  //movzbl will be better
         break;
     default:
         std::cerr << "Error: invalid expression kind\n";
