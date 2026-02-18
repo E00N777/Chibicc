@@ -1,9 +1,9 @@
 #pragma once
 #include <string_view>
-#include <string>
 
 enum class TokenKind{
     PUNCT, //Punctuations
+    IDENT, //Identifiers
     NUM, //Numeric literals
     EOF_TK, //End-of-file markers
 };
@@ -20,7 +20,6 @@ class Token{
         //constructor for operator and EOF
         Token(TokenKind kind, std::string_view content)
             : TKind(kind),TKContent(content){};
-            
         // --- Getter Methods ---
         TokenKind get_kind() const { return TKind; }
 

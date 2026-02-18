@@ -1,3 +1,4 @@
+#pragma once
 #include "astnode.h"
 #include "tokenize.h"
 
@@ -17,6 +18,7 @@ class Parser{
         Node* expr_stmt();
         Node* stmt();
         Node* program();
+        Node* assign();
     public:
         Parser(Token* tk):current(tk){};
 

@@ -1,4 +1,6 @@
 #pragma once
+#include <string_view>
+
 //Node for AST
 enum class NodeKind
 {
@@ -13,6 +15,8 @@ enum class NodeKind
     ND_LT, // < less than 
     ND_LE, // <= less than or equal to
     ND_EXPR_STMT, // expression for statement
+    ND_ASSIGN, // assignment
+    ND_VAR, // variable
 };
 
 class Node{
@@ -22,11 +26,13 @@ class Node{
         Node* rhs = nullptr; // right hand side
         Node* next = nullptr; // Next node
         int val = 0;
+        std::string_view name;  // used for ND_VAR and ND_ASSIGN
     public:
         Node(NodeKind kind): kind(kind){};
         Node(NodeKind kind,Node* lhs,Node* rhs):kind(kind),lhs(lhs),rhs(rhs){};
         Node(NodeKind kind,Node* lhs):kind(kind),lhs(lhs){};
-        Node(int val):val(val){this->kind=NodeKind::ND_NUM;}
+        Node(int val):val(val){this->kind=NodeKind::ND_NUM;};
+        Node(NodeKind kind,std::string_view name): kind(kind),name(name){};
         //================Getter====================
         NodeKind get_nodekind()
         {
@@ -48,10 +54,18 @@ class Node{
         {
             return this->next;
         }
+        std::string_view get_name() const
+        {
+            return name;
+        }
         //=======setter func========
         void set_nextstmt(Node* nextstmt)
         {
             this->next=nextstmt;
+        }
+        void set_name(std::string_view named)
+        {
+            this->name=named;
         }
 
     

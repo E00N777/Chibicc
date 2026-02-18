@@ -29,10 +29,23 @@ Node* Parser::expr_stmt()
 }
 
 
+Node* Parser::assign()
+{
+    Node* node = equality();
+
+    if(Tkequal(current,"="))
+    {
+        current = this->current->get_next();
+        Node* rhs = assign();
+        node = new Node(NodeKind::ND_ASSIGN, node, rhs);
+    }
+    return node;
+}
+
 //lowest level
 Node* Parser::expr()
 {
-    return equality();
+    return assign();
 }
 
 Node* Parser::equality()
@@ -148,6 +161,13 @@ Node* Parser::primary()
         current=this->current->get_next();//skip operator (
         Node* node=expr();
         current=Tkskip(this->current,")");
+        return node;
+    }
+    if(current->get_kind()==TokenKind::IDENT)
+    {
+        Node* node= new Node(NodeKind::ND_VAR);
+        node->set_name(current->get_content());
+        current=this->current->get_next();
         return node;
     }
     if(this->current->get_kind()==TokenKind::NUM)

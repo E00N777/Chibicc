@@ -61,6 +61,16 @@ Token* Tokenize(char* Input, const char* filename) {
             current=current->get_next();
             continue;
         }
+        //Identifiers
+        if('a'<=*Input && *Input<='z')     // val can only be named between a to z
+        {   
+            Token* new_token=new Token(TokenKind::IDENT,std::string_view(Input,1));
+            current->set_next(new_token);
+            current=current->get_next();
+            Input++;
+            continue;
+        }
+
         bool found_multi_ops = false;
         for(const char* op : multi_char_ops)
         {

@@ -13,6 +13,18 @@ void CodeGen::pop(const char* reg){
     depth--;
 }
 
+// Compute the absolute address of a given node.
+// It's an error if the node does not reside in memory.
+void CodeGen::gen_addr(Node* node)
+{
+    if (node->get_nodekind() == NodeKind::ND_VAR) {
+        int offset = (node->get_name().front() - 'a' + 1) * 8;
+        std::cout << "    lea " << -offset << "(%rbp), %rax\n";
+        return;
+    }
+    diagnostic::fatal("not an lvalue");
+}
+
 void CodeGen::gen_expr(Node* node)
 {
     switch (node->get_nodekind()) {
@@ -22,6 +34,17 @@ void CodeGen::gen_expr(Node* node)
     case NodeKind::ND_NEG:
         gen_expr(node->get_lhs());
         std::cout << "    neg %rax\n";
+        return;
+    case NodeKind::ND_VAR:
+        gen_addr(node);
+        std::cout << "    mov (%rax), %rax\n";
+        return;
+    case NodeKind::ND_ASSIGN:
+        gen_addr(node->get_lhs());
+        push();
+        gen_expr(node->get_rhs());
+        pop("%rdi");
+        std::cout << "    mov %rax, (%rdi)\n";
         return;
     }
 
