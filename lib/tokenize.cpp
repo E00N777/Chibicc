@@ -31,9 +31,18 @@ Token* Tkskip(Token* TK, const char* op)
     return TK->get_next();
 }
 
-static bool startswith(const char* p,const char* keyword)
-{
-    return std::strncmp(p,keyword,strlen(keyword)) == 0;
+static bool startswith(const char* p, const char* keyword) {
+    return std::strncmp(p, keyword, strlen(keyword)) == 0;
+}
+
+// Returns true if c is valid as the first character of an identifier.
+static bool is_ident1(char c) {
+    return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
+}
+
+// Returns true if c is valid as a non-first character of an identifier.
+static bool is_ident2(char c) {
+    return is_ident1(c) || ('0' <= c && c <= '9');
 }
 
 Token* Tokenize(char* Input, const char* filename) {
@@ -61,13 +70,13 @@ Token* Tokenize(char* Input, const char* filename) {
             current=current->get_next();
             continue;
         }
-        //Identifiers
-        if('a'<=*Input && *Input<='z')     // val can only be named between a to z
-        {   
-            Token* new_token=new Token(TokenKind::IDENT,std::string_view(Input,1));
+        // Identifiers (multi-character: letters, digits, underscore)
+        if (is_ident1(*Input)) {
+            char* start = Input;
+            do { Input++; } while (is_ident2(*Input));
+            Token* new_token = new Token(TokenKind::IDENT, std::string_view(start, Input - start));
             current->set_next(new_token);
-            current=current->get_next();
-            Input++;
+            current = current->get_next();
             continue;
         }
 

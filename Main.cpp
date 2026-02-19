@@ -14,11 +14,11 @@ int main(int argc, char** argv)
     }
 
     Token* token = Tokenize(argv[1]);
-    Parser parse(token);
-    Node* node = parse.parse();
-    
+    Parser parser(token);
+    Function* prog = parser.parse();
+
     CodeGen codegen;
-    codegen.generate(node);
+    codegen.generate(prog);
     return 0;
 
 }

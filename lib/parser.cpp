@@ -3,17 +3,40 @@
 #include "tokenize.h"
 #include "diagnostic.h"
 
-Node* Parser::program()
-{
+// Find a local variable by name.
+Obj* Parser::find_var(Token* tok) {
+    std::string_view name = tok->get_content();
+    for (Obj* var = locals; var; var = var->next)
+        if (var->name == name)
+            return var;
+    return nullptr;
+}
+
+Node* Parser::new_var_node(Obj* var) {
+    Node* node = new Node(NodeKind::ND_VAR, var);
+    return node;
+}
+
+Obj* Parser::new_lvar(const std::string& name) {
+    Obj* var = new Obj();
+    var->name = name;
+    var->next = locals;
+    locals = var;
+    return var;
+}
+
+Function* Parser::parse() {
     Node head(NodeKind::ND_EXPR_STMT);
-    Node* cur= &head;
-    while (this->current->get_kind() != TokenKind::EOF_TK)
-    {
-        Node* stmt_node=stmt();
+    Node* cur = &head;
+    while (current->get_kind() != TokenKind::EOF_TK) {
+        Node* stmt_node = stmt();
         cur->set_nextstmt(stmt_node);
-        cur=cur->get_nextstmt();
+        cur = cur->get_nextstmt();
     }
-    return head.get_nextstmt();
+    Function* prog = new Function();
+    prog->body = head.get_nextstmt();
+    prog->locals = locals;
+    return prog;
 }
 
 Node* Parser::stmt()
@@ -163,12 +186,12 @@ Node* Parser::primary()
         current=Tkskip(this->current,")");
         return node;
     }
-    if(current->get_kind()==TokenKind::IDENT)
-    {
-        Node* node= new Node(NodeKind::ND_VAR);
-        node->set_name(current->get_content());
-        current=this->current->get_next();
-        return node;
+    if (current->get_kind() == TokenKind::IDENT) {
+        Obj* var = find_var(current);
+        if (!var)
+            var = new_lvar(std::string(current->get_content()));
+        current = current->get_next();
+        return new_var_node(var);
     }
     if(this->current->get_kind()==TokenKind::NUM)
     {

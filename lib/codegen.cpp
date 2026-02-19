@@ -3,26 +3,38 @@
 #include "diagnostic.h"
 #include <iostream>
 
+// Round up n to the nearest multiple of align. E.g. align_to(5, 8) => 8, align_to(11, 8) => 16.
+int CodeGen::align_to(int n, int align) {
+    return (n + align - 1) / align * align;
+}
 
 void CodeGen::push() {
-    std::cout<<"    push %rax\n";
+    std::cout << "    push %rax\n";
     depth++;
 }
-void CodeGen::pop(const char* reg){
-    std::cout<<"    pop "<<reg<<"\n";
+void CodeGen::pop(const char* reg) {
+    std::cout << "    pop " << reg << "\n";
     depth--;
 }
 
 // Compute the absolute address of a given node.
 // It's an error if the node does not reside in memory.
-void CodeGen::gen_addr(Node* node)
-{
+void CodeGen::gen_addr(Node* node) {
     if (node->get_nodekind() == NodeKind::ND_VAR) {
-        int offset = (node->get_name().front() - 'a' + 1) * 8;
-        std::cout << "    lea " << -offset << "(%rbp), %rax\n";
+        std::cout << "    lea " << node->get_var()->offset << "(%rbp), %rax\n";
         return;
     }
     diagnostic::fatal("not an lvalue");
+}
+
+// Assign offsets to local variables.
+void CodeGen::assign_lvar_offsets(Function* prog) {
+    int offset = 0;
+    for (Obj* var = prog->locals; var; var = var->next) {
+        offset += 8;
+        var->offset = -offset;
+    }
+    prog->stack_size = align_to(offset, 16);
 }
 
 void CodeGen::gen_expr(Node* node)
@@ -89,12 +101,30 @@ void CodeGen::gen_expr(Node* node)
     }
 }
 
-void CodeGen::gen_stmt(Node* node)
-{
-    if(node->get_nodekind()==NodeKind::ND_EXPR_STMT)
-    {
+void CodeGen::gen_stmt(Node* node) {
+    if (node->get_nodekind() == NodeKind::ND_EXPR_STMT) {
         gen_expr(node->get_lhs());
         return;
     }
     diagnostic::fatal("invalid statement kind in codegen");
+}
+
+void CodeGen::generate(Function* prog) {
+    assign_lvar_offsets(prog);
+
+    std::cout << "    .globl main\n";
+    std::cout << "main:\n";
+    // Prologue
+    std::cout << "    push %rbp\n";
+    std::cout << "    mov %rsp, %rbp\n";
+    std::cout << "    sub $" << prog->stack_size << ", %rsp\n";
+
+    for (Node* n = prog->body; n; n = n->get_nextstmt()) {
+        gen_stmt(n);
+        assert(depth == 0);
+    }
+
+    std::cout << "    mov %rbp, %rsp\n";
+    std::cout << "    pop %rbp\n";
+    std::cout << "    ret\n";
 }
