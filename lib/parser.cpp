@@ -6,8 +6,8 @@
 // Find a local variable by name.
 Obj* Parser::find_var(Token* tok) {
     std::string_view name = tok->get_content();
-    for (Obj* var = locals; var; var = var->next)
-        if (var->name == name)
+    for (Obj* var = locals; var; var = var->get_next())
+        if (var->get_name() == name)
             return var;
     return nullptr;
 }
@@ -18,9 +18,7 @@ Node* Parser::new_var_node(Obj* var) {
 }
 
 Obj* Parser::new_lvar(const std::string& name) {
-    Obj* var = new Obj();
-    var->name = name;
-    var->next = locals;
+    Obj* var = new Obj(name, locals);
     locals = var;
     return var;
 }
@@ -34,8 +32,8 @@ Function* Parser::parse() {
         cur = cur->get_nextstmt();
     }
     Function* prog = new Function();
-    prog->body = head.get_nextstmt();
-    prog->locals = locals;
+    prog->set_body(head.get_nextstmt());
+    prog->set_locals(locals);
     return prog;
 }
 

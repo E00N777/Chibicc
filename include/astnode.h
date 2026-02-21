@@ -2,18 +2,43 @@
 #include <string>
 #include <string_view>
 
+// Forward declaration for Function (body is Node*).
+class Node;
+
 // Local variable: name and stack offset from RBP.
-struct Obj {
-    Obj* next = nullptr;
-    std::string name;
-    int offset = 0;
+class Obj {
+public:
+    explicit Obj(std::string name, Obj* next = nullptr)
+        : next_(next), name_(std::move(name)), offset_(0) {}
+
+    Obj* get_next() const { return next_; }
+    void set_next(Obj* next) { next_ = next; }
+    const std::string& get_name() const { return name_; }
+    int get_offset() const { return offset_; }
+    void set_offset(int offset) { offset_ = offset; }
+
+private:
+    Obj* next_;
+    std::string name_;
+    int offset_;
 };
 
 // Function: body statements and list of local variables.
-struct Function {
-    class Node* body = nullptr;
-    Obj* locals = nullptr;
-    int stack_size = 0;
+class Function {
+public:
+    Function() = default;
+
+    Node* get_body() const { return body_; }
+    void set_body(Node* body) { body_ = body; }
+    Obj* get_locals() const { return locals_; }
+    void set_locals(Obj* locals) { locals_ = locals; }
+    int get_stack_size() const { return stack_size_; }
+    void set_stack_size(int size) { stack_size_ = size; }
+
+private:
+    Node* body_ = nullptr;
+    Obj* locals_ = nullptr;
+    int stack_size_ = 0;
 };
 
 // Node for AST

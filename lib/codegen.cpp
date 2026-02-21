@@ -21,7 +21,7 @@ void CodeGen::pop(const char* reg) {
 // It's an error if the node does not reside in memory.
 void CodeGen::gen_addr(Node* node) {
     if (node->get_nodekind() == NodeKind::ND_VAR) {
-        std::cout << "    lea " << node->get_var()->offset << "(%rbp), %rax\n";
+        std::cout << "    lea " << node->get_var()->get_offset() << "(%rbp), %rax\n";
         return;
     }
     diagnostic::fatal("not an lvalue");
@@ -30,11 +30,11 @@ void CodeGen::gen_addr(Node* node) {
 // Assign offsets to local variables.
 void CodeGen::assign_lvar_offsets(Function* prog) {
     int offset = 0;
-    for (Obj* var = prog->locals; var; var = var->next) {
+    for (Obj* var = prog->get_locals(); var; var = var->get_next()) {
         offset += 8;
-        var->offset = -offset;
+        var->set_offset(-offset);
     }
-    prog->stack_size = align_to(offset, 16);
+    prog->set_stack_size(align_to(offset, 16));
 }
 
 void CodeGen::gen_expr(Node* node)
@@ -117,9 +117,9 @@ void CodeGen::generate(Function* prog) {
     // Prologue
     std::cout << "    push %rbp\n";
     std::cout << "    mov %rsp, %rbp\n";
-    std::cout << "    sub $" << prog->stack_size << ", %rsp\n";
+    std::cout << "    sub $" << prog->get_stack_size() << ", %rsp\n";
 
-    for (Node* n = prog->body; n; n = n->get_nextstmt()) {
+    for (Node* n = prog->get_body(); n; n = n->get_nextstmt()) {
         gen_stmt(n);
         assert(depth == 0);
     }
