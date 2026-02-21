@@ -39,6 +39,14 @@ Function* Parser::parse() {
 
 Node* Parser::stmt()
 {
+    if(Tkequal(current,"return"))
+    {
+        current=this->current->get_next();
+        Node* node=new Node(NodeKind::ND_RETURN,expr());
+        current=Tkskip(current,";");
+        return node;
+    }
+
     return expr_stmt();
 }
 

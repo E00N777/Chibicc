@@ -5,6 +5,7 @@ enum class TokenKind{
     PUNCT, //Punctuations
     IDENT, //Identifiers
     NUM, //Numeric literals
+    KEYWORD, //Keywords
     EOF_TK, //End-of-file markers
 };
 class Token{
@@ -34,7 +35,10 @@ class Token{
         // --- Setter Methods ---
         void set_next(Token* next) {
         this->TKnext = next;
-    }     
+        }     
+        void set_kind(TokenKind kind) {
+            this->TKind = kind;
+        }
 };
 
 // Implement in tokenize.cpp. Input: source code string.

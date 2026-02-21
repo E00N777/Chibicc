@@ -102,9 +102,20 @@ void CodeGen::gen_expr(Node* node)
 }
 
 void CodeGen::gen_stmt(Node* node) {
+    switch(node->get_nodekind())
+    {
+        case NodeKind::ND_EXPR_STMT:
+            gen_expr(node->get_lhs());
+            return;
+        case NodeKind::ND_RETURN:
+            gen_expr(node->get_lhs());
+            std::cout << "    jmp .L.return\n";
+            return;
+        default:
+            diagnostic::fatal("invalid statement kind in codegen");
+    }
     if (node->get_nodekind() == NodeKind::ND_EXPR_STMT) {
-        gen_expr(node->get_lhs());
-        return;
+
     }
     diagnostic::fatal("invalid statement kind in codegen");
 }
@@ -124,6 +135,7 @@ void CodeGen::generate(Function* prog) {
         assert(depth == 0);
     }
 
+    std::cout << ".L.return:\n";
     std::cout << "    mov %rbp, %rsp\n";
     std::cout << "    pop %rbp\n";
     std::cout << "    ret\n";

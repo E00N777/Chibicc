@@ -57,6 +57,7 @@ enum class NodeKind
     ND_EXPR_STMT, // expression statement
     ND_ASSIGN,    // assignment
     ND_VAR,       // variable (uses var pointer)
+    ND_RETURN,    // return
 };
 
 class Node {

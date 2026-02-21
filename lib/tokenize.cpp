@@ -31,6 +31,18 @@ Token* Tkskip(Token* TK, const char* op)
     return TK->get_next();
 }
 
+static void convert_keyword(Token* TK)
+{
+    while(TK->get_kind()!=TokenKind::EOF_TK){
+    if(Tkequal(TK,"return"))
+    {
+        TK->set_kind(TokenKind::KEYWORD);
+    }
+    TK=TK->get_next();
+    }
+
+}
+
 static bool startswith(const char* p, const char* keyword) {
     return std::strncmp(p, keyword, strlen(keyword)) == 0;
 }
@@ -110,6 +122,7 @@ Token* Tokenize(char* Input, const char* filename) {
     Token* eof_token=new Token(TokenKind::EOF_TK, std::string_view(Input, 0));
     current->set_next(eof_token);
 
+    convert_keyword(head.get_next());
     return head.get_next();
 
 }
