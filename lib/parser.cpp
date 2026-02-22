@@ -67,6 +67,12 @@ Node* Parser::stmt()
 
 Node* Parser::expr_stmt()
 {
+    if(Tkequal(current,";"))
+    {
+        Tkskip(current,";");
+        Node* node=new Node(NodeKind::ND_BLOCK);
+        return node;
+    }
     Node* node =new Node(NodeKind::ND_EXPR_STMT,expr());
     Tkskip(current,";");
     return node;
