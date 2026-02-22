@@ -23,12 +23,12 @@ int Token::get_number() const {
     return this->TKval;
 }
 
-Token* Tkskip(Token* TK, const char* op)
+void Tkskip(Token*& TK, const char* op)
 {
     if (!Tkequal(TK, op)) {
         diagnostic::error_at(TK->get_content(), "expected '" + std::string(op) + "'");
     }
-    return TK->get_next();
+    TK = TK->get_next();
 }
 
 static void convert_keyword(Token* TK)

@@ -43,5 +43,5 @@ class Token{
 
 // Implement in tokenize.cpp. Input: source code string.
 Token* Tokenize(char* Input, const char* filename = "<input>");
-Token* Tkskip(Token* TK, const char* op);
+void Tkskip(Token*& TK, const char* op);
 bool Tkequal(Token* TK, const char* op);

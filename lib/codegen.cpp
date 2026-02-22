@@ -111,11 +111,13 @@ void CodeGen::gen_stmt(Node* node) {
             gen_expr(node->get_lhs());
             std::cout << "    jmp .L.return\n";
             return;
+        case NodeKind::ND_BLOCK:
+            for (Node* n = node->get_body(); n; n = n->get_nextstmt()) {
+                gen_stmt(n);
+            }
+            return;
         default:
             diagnostic::fatal("invalid statement kind in codegen");
-    }
-    if (node->get_nodekind() == NodeKind::ND_EXPR_STMT) {
-
     }
     diagnostic::fatal("invalid statement kind in codegen");
 }

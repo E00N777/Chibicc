@@ -58,6 +58,7 @@ enum class NodeKind
     ND_ASSIGN,    // assignment
     ND_VAR,       // variable (uses var pointer)
     ND_RETURN,    // return
+    ND_BLOCK,     // block
 };
 
 class Node {
@@ -68,6 +69,7 @@ private:
     Node* next = nullptr;
     int val = 0;
     Obj* var = nullptr;  // used when kind == ND_VAR
+    Node* body = nullptr;
 
 public:
     Node(NodeKind kind) : kind(kind) {}
@@ -85,4 +87,6 @@ public:
 
     void set_nextstmt(Node* n) { next = n; }
     void set_var(Obj* v) { var = v; }
+    void set_body(Node* b) { body = b; }
+    Node* get_body() const { return body; }
 };

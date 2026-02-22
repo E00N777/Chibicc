@@ -22,17 +22,26 @@ Obj* Parser::new_lvar(const std::string& name) {
     locals = var;
     return var;
 }
-
-Function* Parser::parse() {
-    Node head(NodeKind::ND_EXPR_STMT);
+Node* Parser::compound_stmt()
+{
+    Node head(NodeKind::ND_EXPR_STMT);  // sentinel for statement list
     Node* cur = &head;
-    while (current->get_kind() != TokenKind::EOF_TK) {
+    while(!Tkequal(current,"}"))
+    {
         Node* stmt_node = stmt();
         cur->set_nextstmt(stmt_node);
         cur = cur->get_nextstmt();
     }
+    Node* node = new Node(NodeKind::ND_BLOCK);
+    node->set_body(head.get_nextstmt());
+    Tkskip(current,"}");
+    return node;
+}
+
+Function* Parser::parse() {
+    Tkskip(current,"{");
     Function* prog = new Function();
-    prog->set_body(head.get_nextstmt());
+    prog->set_body(compound_stmt());
     prog->set_locals(locals);
     return prog;
 }
@@ -43,7 +52,13 @@ Node* Parser::stmt()
     {
         current=this->current->get_next();
         Node* node=new Node(NodeKind::ND_RETURN,expr());
-        current=Tkskip(current,";");
+        Tkskip(current,";");
+        return node;
+    }
+    if(Tkequal(current,"{"))
+    {
+        Tkskip(current,"{");
+        Node* node = compound_stmt();
         return node;
     }
 
@@ -53,7 +68,7 @@ Node* Parser::stmt()
 Node* Parser::expr_stmt()
 {
     Node* node =new Node(NodeKind::ND_EXPR_STMT,expr());
-    current =Tkskip(current,";");
+    Tkskip(current,";");
     return node;
 }
 
@@ -189,7 +204,7 @@ Node* Parser::primary()
     {
         current=this->current->get_next();//skip operator (
         Node* node=expr();
-        current=Tkskip(this->current,")");
+        Tkskip(current,")");
         return node;
     }
     if (current->get_kind() == TokenKind::IDENT) {

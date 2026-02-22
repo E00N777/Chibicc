@@ -17,6 +17,7 @@ private:
     Node* expr_stmt();
     Node* stmt();
     Node* assign();
+    Node* compound_stmt();
 
     Obj* find_var(Token* tok);
     static Node* new_var_node(Obj* var);
