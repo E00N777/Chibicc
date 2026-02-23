@@ -6,7 +6,7 @@
 
 
 static const char* multi_char_ops[]={"==","!=",">=","<="};
-
+static const std::string_view keywords[]={"if","else","return"};
 
 
 bool Tkequal(Token* TK,const char* op)
@@ -31,10 +31,22 @@ void Tkskip(Token*& TK, const char* op)
     TK = TK->get_next();
 }
 
+static bool if_keyword(std::string_view tok_content)
+{
+    for(const std::string_view keyword : keywords)
+    {
+        if(tok_content == keyword)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 static void convert_keyword(Token* TK)
 {
     while(TK->get_kind()!=TokenKind::EOF_TK){
-    if(Tkequal(TK,"return"))
+    if(if_keyword(TK->get_content()))
     {
         TK->set_kind(TokenKind::KEYWORD);
     }

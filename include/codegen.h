@@ -5,9 +5,11 @@
 class CodeGen {
 public:
     void generate(Function* prog);
+    int gen_label_seq(){return label_seq++;};
 
 private:
     int depth = 0;
+    int label_seq = 0;
     void push();
     void pop(const char* reg);
     void gen_addr(Node* node);

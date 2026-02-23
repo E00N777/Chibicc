@@ -59,6 +59,7 @@ enum class NodeKind
     ND_VAR,       // variable (uses var pointer)
     ND_RETURN,    // return
     ND_BLOCK,     // block
+    ND_IF,        // if
 };
 
 class Node {
@@ -70,6 +71,9 @@ private:
     int val = 0;
     Obj* var = nullptr;  // used when kind == ND_VAR
     Node* body = nullptr;
+    Node* condition = nullptr;
+    Node* then = nullptr;
+    Node* els = nullptr;
 
 public:
     Node(NodeKind kind) : kind(kind) {}
@@ -89,4 +93,11 @@ public:
     void set_var(Obj* v) { var = v; }
     void set_body(Node* b) { body = b; }
     Node* get_body() const { return body; }
+
+    void set_condition(Node* c) { condition = c; }
+    void set_then(Node* t) { then = t; }
+    void set_els(Node* e) { els = e; }
+    Node* get_condition() const { return condition; }
+    Node* get_then() const { return then; }
+    Node* get_els() const { return els; }
 };

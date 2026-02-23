@@ -104,6 +104,21 @@ void CodeGen::gen_expr(Node* node)
 void CodeGen::gen_stmt(Node* node) {
     switch(node->get_nodekind())
     {
+        case NodeKind::ND_IF: {
+            int seq=gen_label_seq();
+            gen_expr(node->get_condition());
+            std::cout << "    cmp $0, %rax\n";
+            std::cout << "     je .L.else" << seq << "\n";
+            gen_stmt(node->get_then());
+            std::cout << "    jmp .L.end" << seq << "\n";
+            std::cout << ".L.else" << seq << ":\n";
+            if(node->get_els())
+            {
+                gen_stmt(node->get_els());
+            }
+            std::cout << ".L.end" << seq << ":\n";
+            return;
+        }
         case NodeKind::ND_EXPR_STMT:
             gen_expr(node->get_lhs());
             return;
