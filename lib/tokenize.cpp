@@ -1,12 +1,13 @@
 #include "tokenize.h"
 #include "diagnostic.h"
+#include <array>
 #include <cctype>
-#include <string_view>
 #include <cstring>
+#include <string_view>
 
 
-static const char* multi_char_ops[]={"==","!=",">=","<="};
-static const std::string_view keywords[]={"if","else","return"};
+static constexpr std::array<std::string_view, 4> multi_char_ops = {"==", "!=", ">=", "<="};
+static constexpr std::array<std::string_view, 3> keywords = {"if", "else", "return"};
 
 
 bool Tkequal(Token* TK,const char* op)
@@ -55,8 +56,12 @@ static void convert_keyword(Token* TK)
 
 }
 
-static bool startswith(const char* p, const char* keyword) {
-    return std::strncmp(p, keyword, strlen(keyword)) == 0;
+// 检查 p 是否以 prefix 开头，不越界且不依赖 C 字符串函数
+static bool starts_with(const char* p, std::string_view prefix) {
+    for (std::size_t i = 0; i < prefix.size(); ++i) {
+        if (p[i] == '\0') return false;
+    }
+    return std::string_view(p, prefix.size()) == prefix;
 }
 
 // Returns true if c is valid as the first character of an identifier.
@@ -105,20 +110,17 @@ Token* Tokenize(char* Input, const char* filename) {
         }
 
         bool found_multi_ops = false;
-        for(const char* op : multi_char_ops)
-        {
-            
-            if(startswith(Input,op))
-            {
-                Token* new_token=new Token(TokenKind::PUNCT,std::string_view(Input,2));
+        for (std::string_view op : multi_char_ops) {
+            if (starts_with(Input, op)) {
+                Token* new_token = new Token(TokenKind::PUNCT, std::string_view(Input, op.size()));
                 current->set_next(new_token);
-                current=current->get_next();
-                Input += 2;
-                found_multi_ops=true;
+                current = current->get_next();
+                Input += op.size();
+                found_multi_ops = true;
                 break;
             }
         }
-        if(found_multi_ops){continue;}
+        if (found_multi_ops) continue;
 
         if(std::ispunct(*Input))
         {
