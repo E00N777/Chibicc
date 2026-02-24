@@ -119,6 +119,25 @@ void CodeGen::gen_stmt(Node* node) {
             std::cout << ".L.end" << seq << ":\n";
             return;
         }
+        case NodeKind::ND_FOR:{
+            int seq=gen_label_seq();
+            gen_stmt(node->get_init());
+            std::cout <<".L.begin" << seq << ":\n";
+            if(node->get_condition())
+            {
+                gen_expr(node->get_condition());
+                std::cout << "    cmp $0, %rax\n";
+                std::cout << "    je .L.end" << seq << "\n";
+            }
+            gen_stmt(node->get_then());
+            if(node->get_inc())
+            {
+                gen_expr(node->get_inc());
+            }
+            std::cout << "    jmp .L.begin" << seq << "\n";
+            std::cout << ".L.end" << seq << ":\n";
+            return;
+        }
         case NodeKind::ND_EXPR_STMT:
             gen_expr(node->get_lhs());
             return;

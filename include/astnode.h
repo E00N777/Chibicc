@@ -60,6 +60,7 @@ enum class NodeKind
     ND_RETURN,    // return
     ND_BLOCK,     // block
     ND_IF,        // if
+    ND_FOR,       // for
 };
 
 class Node {
@@ -71,9 +72,13 @@ private:
     int val = 0;
     Obj* var = nullptr;  // used when kind == ND_VAR
     Node* body = nullptr;
+    //Support for if and for statement
     Node* condition = nullptr;
     Node* then = nullptr;
     Node* els = nullptr;
+    Node* init = nullptr;
+    Node* inc=nullptr;
+
 
 public:
     Node(NodeKind kind) : kind(kind) {}
@@ -100,4 +105,8 @@ public:
     Node* get_condition() const { return condition; }
     Node* get_then() const { return then; }
     Node* get_els() const { return els; }
+    void set_init(Node* i) { init = i; }
+    Node* get_init() const { return init; }
+    void set_inc(Node* i) { inc = i; }
+    Node* get_inc() const { return inc; }
 };

@@ -7,7 +7,7 @@
 
 
 static constexpr std::array<std::string_view, 4> multi_char_ops = {"==", "!=", ">=", "<="};
-static constexpr std::array<std::string_view, 3> keywords = {"if", "else", "return"};
+static constexpr std::array<std::string_view, 4> keywords = {"if", "else", "return", "for"};
 
 
 bool Tkequal(Token* TK,const char* op)
@@ -56,7 +56,6 @@ static void convert_keyword(Token* TK)
 
 }
 
-// 检查 p 是否以 prefix 开头，不越界且不依赖 C 字符串函数
 static bool starts_with(const char* p, std::string_view prefix) {
     for (std::size_t i = 0; i < prefix.size(); ++i) {
         if (p[i] == '\0') return false;

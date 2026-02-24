@@ -55,6 +55,26 @@ Node* Parser::stmt()
         Tkskip(current,";");
         return node;
     }
+
+    if(Tkequal(current,"for"))
+    {
+        Node* node = new Node(NodeKind::ND_FOR);
+        current=this->current->get_next();
+        Tkskip(current,"(");
+        node->set_init(expr_stmt());
+        if(!Tkequal(current,";"))
+        {
+            node->set_condition(expr());
+        }
+        Tkskip(current,";");
+        if(!Tkequal(current,")"))
+        {
+            node->set_inc(expr());
+        }
+        Tkskip(current,")");
+        node->set_then(stmt());
+        return node;
+    }
     
     if(Tkequal(current,"if"))
     {
