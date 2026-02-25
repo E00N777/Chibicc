@@ -7,7 +7,7 @@
 
 
 static constexpr std::array<std::string_view, 4> multi_char_ops = {"==", "!=", ">=", "<="};
-static constexpr std::array<std::string_view, 4> keywords = {"if", "else", "return", "for"};
+static constexpr std::array<std::string_view, 5> keywords = {"if", "else", "return", "for", "while"};
 
 
 bool Tkequal(Token* TK,const char* op)

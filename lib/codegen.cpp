@@ -121,7 +121,9 @@ void CodeGen::gen_stmt(Node* node) {
         }
         case NodeKind::ND_FOR:{
             int seq=gen_label_seq();
-            gen_stmt(node->get_init());
+            if(node->get_init()){
+                gen_stmt(node->get_init());
+            }
             std::cout <<".L.begin" << seq << ":\n";
             if(node->get_condition())
             {

@@ -60,7 +60,7 @@ enum class NodeKind
     ND_RETURN,    // return
     ND_BLOCK,     // block
     ND_IF,        // if
-    ND_FOR,       // for
+    ND_FOR,       // for and while statement
 };
 
 class Node {
