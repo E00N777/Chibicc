@@ -62,6 +62,8 @@ enum class NodeKind
     ND_BLOCK,     // block
     ND_IF,        // if
     ND_FOR,       // for and while statement
+    ND_ADDR,      // address of
+    ND_DEREF,     // dereference
 };
 
 class Node {

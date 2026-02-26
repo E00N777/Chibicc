@@ -20,11 +20,21 @@ void CodeGen::pop(const char* reg) {
 // Compute the absolute address of a given node.
 // It's an error if the node does not reside in memory.
 void CodeGen::gen_addr(Node* node) {
-    if (node->get_nodekind() == NodeKind::ND_VAR) {
-        std::cout << "    lea " << node->get_var()->get_offset() << "(%rbp), %rax\n";
-        return;
+    switch(node->get_nodekind())
+    {
+        case NodeKind::ND_VAR:
+            std::cout << "    lea " << node->get_var()->get_offset() << "(%rbp), %rax\n";
+            break;
+        case NodeKind::ND_DEREF:
+            gen_expr(node->get_lhs());
+            return;
+        case NodeKind::ND_ADDR:
+            gen_addr(node->get_lhs());
+            return;
+        default:
+            diagnostic::error_tok(node->get_tok(), "not an lvalue");
+
     }
-    diagnostic::error_tok(node->get_tok(), "not an lvalue");
 }
 
 // Assign offsets to local variables.
@@ -58,6 +68,13 @@ void CodeGen::gen_expr(Node* node)
         pop("%rdi");
         std::cout << "    mov %rax, (%rdi)\n";
         return;
+    case NodeKind::ND_ADDR:
+        gen_addr(node->get_lhs());
+        return;
+    case NodeKind::ND_DEREF:
+        gen_addr(node);
+        std::cout << "    mov (%rax), %rax\n";
+        return;
     }
 
     gen_expr(node->get_rhs());
@@ -79,6 +96,7 @@ void CodeGen::gen_expr(Node* node)
         std::cout << "    cqo\n";
         std::cout << "    idiv %rdi\n";
         break;
+    
     case NodeKind::ND_LT:
     case NodeKind::ND_EQ:
     case NodeKind::ND_NE:

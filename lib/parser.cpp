@@ -3,6 +3,7 @@
 #include "tokenize.h"
 #include "diagnostic.h"
 
+
 // Find a local variable by name.
 Obj* Parser::find_var(Token* tok) {
     std::string_view name = tok->get_content();
@@ -316,6 +317,7 @@ Node* Parser::primary()
     diagnostic::error_at(current->get_content(), "expected an expression");
 }   
 
+// unary = ("+" | "-" | "*" | "&") unary
 Node* Parser::unary()
 {
     if(Tkequal(this->current,"+"))
@@ -329,6 +331,24 @@ Node* Parser::unary()
         current=this->current->get_next();
         Node* node = new Node(NodeKind::ND_NEG,unary());
         node->set_tok(minus_tok);
+        return node;
+    }
+    if(Tkequal(this->current,"&"))
+    {
+        
+        Token* addr_tok = current;
+        current=this->current->get_next();
+        Node* node=new Node(NodeKind::ND_ADDR,unary());
+        node->set_tok(addr_tok);
+        return node;
+    }
+    if(Tkequal(this->current,"*"))
+    {
+        
+        Token* deref_tok = current;
+        current=this->current->get_next();
+        Node* node=new Node(NodeKind::ND_DEREF,unary());
+        node->set_tok(deref_tok);
         return node;
     }
 
