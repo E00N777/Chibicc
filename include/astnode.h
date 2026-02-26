@@ -2,8 +2,9 @@
 #include <string>
 #include <string_view>
 
-// Forward declaration for Function (body is Node*).
+// Forward declarations.
 class Node;
+class Token;
 
 // Local variable: name and stack offset from RBP.
 class Obj {
@@ -69,6 +70,7 @@ private:
     Node* lhs = nullptr;
     Node* rhs = nullptr;
     Node* next = nullptr;
+    Token* tok = nullptr;  // Representative token
     int val = 0;
     Obj* var = nullptr;  // used when kind == ND_VAR
     Node* body = nullptr;
@@ -88,6 +90,8 @@ public:
     Node(NodeKind kind, Obj* var) : kind(kind), var(var) {}
 
     NodeKind get_nodekind() const { return kind; }
+    Token* get_tok() const { return tok; }
+    void set_tok(Token* t) { tok = t; }
     int get_val() const { return val; }
     Node* get_lhs() const { return lhs; }
     Node* get_rhs() const { return rhs; }

@@ -20,7 +20,7 @@ private:
     Node* compound_stmt();
 
     Obj* find_var(Token* tok);
-    static Node* new_var_node(Obj* var);
+    static Node* new_var_node(Obj* var, Token* tok);
     Obj* new_lvar(const std::string& name);
 
 public:

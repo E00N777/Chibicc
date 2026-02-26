@@ -24,7 +24,7 @@ void CodeGen::gen_addr(Node* node) {
         std::cout << "    lea " << node->get_var()->get_offset() << "(%rbp), %rax\n";
         return;
     }
-    diagnostic::fatal("not an lvalue");
+    diagnostic::error_tok(node->get_tok(), "not an lvalue");
 }
 
 // Assign offsets to local variables.
@@ -97,7 +97,7 @@ void CodeGen::gen_expr(Node* node)
         std::cout << "    movzbq %al, %rax\n";  //movzbl will be better
         break;
     default:
-        diagnostic::fatal("invalid expression kind in codegen");
+        diagnostic::error_tok(node->get_tok(), "invalid expression");
     }
 }
 
@@ -153,9 +153,9 @@ void CodeGen::gen_stmt(Node* node) {
             }
             return;
         default:
-            diagnostic::fatal("invalid statement kind in codegen");
+            diagnostic::error_tok(node->get_tok(), "invalid statement");
     }
-    diagnostic::fatal("invalid statement kind in codegen");
+    diagnostic::error_tok(node->get_tok(), "invalid statement");
 }
 
 void CodeGen::generate(Function* prog) {
