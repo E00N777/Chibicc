@@ -23,6 +23,12 @@ private:
     static Node* new_var_node(Obj* var, Token* tok);
     Obj* new_lvar(const std::string& name);
 
+    // Helpers for typed arithmetic (pointer + int scales by element size).
+    static Node* new_binary(NodeKind kind, Node* lhs, Node* rhs, Token* tok);
+    static Node* new_num(int val, Token* tok);
+    Node* new_add(Node* lhs, Node* rhs, Token* tok);
+    Node* new_sub(Node* lhs, Node* rhs, Token* tok);
+
 public:
     Parser(Token* tk) : current(tk) {}
 

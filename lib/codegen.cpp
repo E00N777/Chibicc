@@ -32,7 +32,7 @@ void CodeGen::gen_addr(Node* node) {
             gen_addr(node->get_lhs());
             return;
         default:
-            diagnostic::error_tok(node->get_tok(), "not an lvalue");
+            diagnostic::error_tok(node->get_tok(), "There must be an lvalue in address of or dereference!");
 
     }
 }

@@ -2,7 +2,9 @@
 build/
 
 .cache
+.vscode
 *.s
+*.json
 
 tmp*
 

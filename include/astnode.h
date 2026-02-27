@@ -5,6 +5,7 @@
 // Forward declarations.
 class Node;
 class Token;
+class Type;
 
 // Local variable: name and stack offset from RBP.
 class Obj {
@@ -81,8 +82,9 @@ private:
     Node* then = nullptr;
     Node* els = nullptr;
     Node* init = nullptr;
-    Node* inc=nullptr;
+    Node* inc = nullptr;
 
+    Type* ty = nullptr;  // Type of this expression, e.g. int or pointer to int
 
 public:
     Node(NodeKind kind) : kind(kind) {}
@@ -94,6 +96,8 @@ public:
     NodeKind get_nodekind() const { return kind; }
     Token* get_tok() const { return tok; }
     void set_tok(Token* t) { tok = t; }
+    Type* get_ty() const { return ty; }
+    void set_ty(Type* t) { ty = t; }
     int get_val() const { return val; }
     Node* get_lhs() const { return lhs; }
     Node* get_rhs() const { return rhs; }

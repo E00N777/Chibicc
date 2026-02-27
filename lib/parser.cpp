@@ -2,6 +2,8 @@
 #include "astnode.h"
 #include "tokenize.h"
 #include "diagnostic.h"
+#include "type.h"
+#include <utility>
 
 
 // Find a local variable by name.
@@ -24,16 +26,75 @@ Obj* Parser::new_lvar(const std::string& name) {
     locals = var;
     return var;
 }
+
+Node* Parser::new_binary(NodeKind kind, Node* lhs, Node* rhs, Token* tok) {
+    Node* node = new Node(kind, lhs, rhs);
+    node->set_tok(tok);
+    return node;
+}
+
+Node* Parser::new_num(int val, Token* tok) {
+    Node* node = new Node(val);
+    node->set_tok(tok);
+    return node;
+}
+
+// int+int => add; ptr+int or int+ptr => scale int by 8 then add.
+Node* Parser::new_add(Node* lhs, Node* rhs, Token* tok) {
+    add_type(lhs);
+    add_type(rhs);
+
+    if (is_integer(lhs->get_ty()) && is_integer(rhs->get_ty()))
+        return new_binary(NodeKind::ND_ADD, lhs, rhs, tok);
+
+    if (lhs->get_ty()->get_base() && rhs->get_ty()->get_base())
+        diagnostic::error_tok(tok, "invalid operands");
+
+    // Canonicalize num+ptr => ptr+num.
+    if (!lhs->get_ty()->get_base() && rhs->get_ty()->get_base())
+        std::swap(lhs, rhs);
+
+    // ptr + num: scale rhs by 8 (element size).
+    rhs = new_binary(NodeKind::ND_MUL, rhs, new_num(8, tok), tok);
+    return new_binary(NodeKind::ND_ADD, lhs, rhs, tok);
+}
+
+
+// int-int => sub; ptr-int => scale then sub; ptr-ptr => byte diff / 8.
+Node* Parser::new_sub(Node* lhs, Node* rhs, Token* tok) {
+    add_type(lhs);
+    add_type(rhs);
+
+    if (is_integer(lhs->get_ty()) && is_integer(rhs->get_ty()))
+        return new_binary(NodeKind::ND_SUB, lhs, rhs, tok);
+
+    if (lhs->get_ty()->get_base() && is_integer(rhs->get_ty())) {
+        rhs = new_binary(NodeKind::ND_MUL, rhs, new_num(8, tok), tok);
+        add_type(rhs);
+        Node* node = new_binary(NodeKind::ND_SUB, lhs, rhs, tok);
+        node->set_ty(lhs->get_ty());
+        return node;
+    }
+
+    if (lhs->get_ty()->get_base() && rhs->get_ty()->get_base()) {
+        Node* node = new_binary(NodeKind::ND_SUB, lhs, rhs, tok);
+        node->set_ty(get_ty_int());
+        return new_binary(NodeKind::ND_DIV, node, new_num(8, tok), tok);
+    }
+
+    diagnostic::error_tok(tok, "invalid operands");
+}
+
 Node* Parser::compound_stmt()
 {
     Token* block_tok = current;  // first token inside block
     Node head(NodeKind::ND_EXPR_STMT);  // sentinel for statement list
     Node* cur = &head;
-    while(!Tkequal(current,"}"))
-    {
+    while (!Tkequal(current, "}")) {
         Node* stmt_node = stmt();
         cur->set_nextstmt(stmt_node);
         cur = cur->get_nextstmt();
+        add_type(cur);
     }
     Node* node = new Node(NodeKind::ND_BLOCK);
     node->set_tok(block_tok);
@@ -236,26 +297,20 @@ Node* Parser::relational()
 }
 
 
-Node* Parser::add()
-{
-    Node* node=mul();
+Node* Parser::add() {
+    Node* node = mul();
 
-    for(;;)
-    {
-        if(Tkequal(this->current, "+"))
-        {
+    for (;;) {
+        if (Tkequal(this->current, "+")) {
             Token* op_tok = current;
-            current=this->current->get_next();
-            node=new Node(NodeKind::ND_ADD,node,mul());
-            node->set_tok(op_tok);
+            current = this->current->get_next();
+            node = new_add(node, mul(), op_tok);
             continue;
         }
-        if(Tkequal(this->current, "-"))
-        {
+        if (Tkequal(this->current, "-")) {
             Token* op_tok = current;
-            current=this->current->get_next();
-            node=new Node(NodeKind::ND_SUB,node,mul());
-            node->set_tok(op_tok);
+            current = this->current->get_next();
+            node = new_sub(node, mul(), op_tok);
             continue;
         }
         return node;

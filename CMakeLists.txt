@@ -19,6 +19,7 @@ add_library(cc_core STATIC
     lib/tokenize.cpp
     lib/parser.cpp
     lib/codegen.cpp
+    lib/type.cpp
 )
 
 target_include_directories(cc_core PUBLIC "${CMAKE_SOURCE_DIR}/include")
