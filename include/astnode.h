@@ -73,7 +73,8 @@ private:
     Node* lhs = nullptr;
     Node* rhs = nullptr;
     Node* next = nullptr;
-    Token* tok = nullptr;  // Representative token
+     // Representative token for error reporting
+    Token* tok = nullptr; 
     int val = 0;
     Obj* var = nullptr;  // used when kind == ND_VAR
     Node* body = nullptr;

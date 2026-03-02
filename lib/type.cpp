@@ -21,7 +21,7 @@ bool is_integer(Type* ty) {
 void add_type(Node* node) {
     if (!node || node->get_ty())
         return;
-
+    //simple coverage for all nodes
     add_type(node->get_lhs());
     add_type(node->get_rhs());
     add_type(node->get_condition());
@@ -29,10 +29,9 @@ void add_type(Node* node) {
     add_type(node->get_els());
     add_type(node->get_init());
     add_type(node->get_inc());
-
     for (Node* n = node->get_body(); n; n = n->get_nextstmt())
         add_type(n);
-
+   
     switch (node->get_nodekind()) {
     case NodeKind::ND_ADD:
     case NodeKind::ND_SUB:

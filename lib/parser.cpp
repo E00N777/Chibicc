@@ -33,6 +33,10 @@ Node* Parser::new_binary(NodeKind kind, Node* lhs, Node* rhs, Token* tok) {
     return node;
 }
 
+Node* Parser::make_binary(NodeKind kind, Node* lhs, Node* rhs, Token* op_tok) {
+    return new_binary(kind, lhs, rhs, op_tok);
+}
+
 Node* Parser::new_num(int val, Token* tok) {
     Node* node = new Node(val);
     node->set_tok(tok);
@@ -87,10 +91,10 @@ Node* Parser::new_sub(Node* lhs, Node* rhs, Token* tok) {
 
 Node* Parser::compound_stmt()
 {
-    Token* block_tok = current;  // first token inside block
+    Token* block_tok = peek();
     Node head(NodeKind::ND_EXPR_STMT);  // sentinel for statement list
     Node* cur = &head;
-    while (!Tkequal(current, "}")) {
+    while (!check("}")) {
         Node* stmt_node = stmt();
         cur->set_nextstmt(stmt_node);
         cur = cur->get_nextstmt();
@@ -99,12 +103,12 @@ Node* Parser::compound_stmt()
     Node* node = new Node(NodeKind::ND_BLOCK);
     node->set_tok(block_tok);
     node->set_body(head.get_nextstmt());
-    Tkskip(current,"}");
+    expect("}");
     return node;
 }
 
 Function* Parser::parse() {
-    Tkskip(current,"{");
+    expect("{");
     Function* prog = new Function();
     prog->set_body(compound_stmt());
     prog->set_locals(locals);
@@ -113,72 +117,59 @@ Function* Parser::parse() {
 
 Node* Parser::stmt()
 {
-    if(Tkequal(current,"return"))
-    {
-        Token* ret_tok = current;
-        current=this->current->get_next();
-        Node* node=new Node(NodeKind::ND_RETURN,expr());
+    if (check("return")) {
+        Token* ret_tok = peek();
+        consume("return");
+        Node* node = new Node(NodeKind::ND_RETURN, expr());
         node->set_tok(ret_tok);
-        Tkskip(current,";");
+        expect(";");
         return node;
     }
 
-    if(Tkequal(current,"while"))
-    {
-        Token* while_tok = current;
+    if (check("while")) {
+        Token* while_tok = peek();
+        consume("while");
         Node* node = new Node(NodeKind::ND_FOR);
         node->set_tok(while_tok);
-        current=this->current->get_next();
-        Tkskip(current,"(");
+        expect("(");
         node->set_condition(expr());
-        Tkskip(current,")");
+        expect(")");
         node->set_then(stmt());
         return node;
     }
 
-    if(Tkequal(current,"for"))
-    {
-        Token* for_tok = current;
+    if (check("for")) {
+        Token* for_tok = peek();
+        consume("for");
         Node* node = new Node(NodeKind::ND_FOR);
         node->set_tok(for_tok);
-        current=this->current->get_next();
-        Tkskip(current,"(");
+        expect("(");
         node->set_init(expr_stmt());
-        if(!Tkequal(current,";"))
-        {
+        if (!check(";"))
             node->set_condition(expr());
-        }
-        Tkskip(current,";");
-        if(!Tkequal(current,")"))
-        {
+        expect(";");
+        if (!check(")"))
             node->set_inc(expr());
-        }
-        Tkskip(current,")");
+        expect(")");
         node->set_then(stmt());
-        return node;
-    }
-    
-    if(Tkequal(current,"if"))
-    {
-        Token* if_tok = current;
-        Node* node = new Node(NodeKind::ND_IF);
-        node->set_tok(if_tok);
-        current=this->current->get_next();
-        Tkskip(current,"(");
-        node->set_condition(expr());
-        Tkskip(current,")");
-        node->set_then(stmt());
-        if(Tkequal(current,"else"))
-        {
-            current=this->current->get_next();
-            node->set_els(stmt());
-        }
         return node;
     }
 
-    if(Tkequal(current,"{"))
-    {
-        Tkskip(current,"{");
+    if (check("if")) {
+        Token* if_tok = peek();
+        consume("if");
+        Node* node = new Node(NodeKind::ND_IF);
+        node->set_tok(if_tok);
+        expect("(");
+        node->set_condition(expr());
+        expect(")");
+        node->set_then(stmt());
+        if (consume("else"))
+            node->set_els(stmt());
+        return node;
+    }
+
+    if (consume("{")) {
         Node* node = compound_stmt();
         return node;
     }
@@ -188,17 +179,15 @@ Node* Parser::stmt()
 
 Node* Parser::expr_stmt()
 {
-    Token* stmt_tok = current;
-    if(Tkequal(current,";"))
-    {
-        Tkskip(current,";");
-        Node* node=new Node(NodeKind::ND_BLOCK);
+    Token* stmt_tok = peek();
+    if (consume(";")) {
+        Node* node = new Node(NodeKind::ND_BLOCK);
         node->set_tok(stmt_tok);
         return node;
     }
-    Node* node =new Node(NodeKind::ND_EXPR_STMT,expr());
+    Node* node = new Node(NodeKind::ND_EXPR_STMT, expr());
     node->set_tok(stmt_tok);
-    Tkskip(current,";");
+    expect(";");
     return node;
 }
 
@@ -207,13 +196,11 @@ Node* Parser::assign()
 {
     Node* node = equality();
 
-    if(Tkequal(current,"="))
-    {
-        Token* assign_tok = current;
-        current = this->current->get_next();
+    if (check("=")) {
+        Token* assign_tok = peek();
+        consume("=");
         Node* rhs = assign();
-        node = new Node(NodeKind::ND_ASSIGN, node, rhs);
-        node->set_tok(assign_tok);
+        node = make_binary(NodeKind::ND_ASSIGN, node, rhs, assign_tok);
     }
     return node;
 }
@@ -226,74 +213,55 @@ Node* Parser::expr()
 
 Node* Parser::equality()
 {
-    Node* node=relational();
+    Node* node = relational();
 
-    for(;;)
-    {
-        if(Tkequal(this->current,"==" ))
-        {
-            Token* op_tok = current;
-            current=this->current->get_next();
-            node=new Node(NodeKind::ND_EQ,node,relational());
-            node->set_tok(op_tok);
+    for (;;) {
+        if (check("==")) {
+            Token* op_tok = peek();
+            consume("==");
+            node = make_binary(NodeKind::ND_EQ, node, relational(), op_tok);
             continue;
         }
-
-        if(Tkequal(this->current,"!=" ))
-        {
-            Token* op_tok = current;
-            current=this->current->get_next();
-            node=new Node(NodeKind::ND_NE,node,relational());
-            node->set_tok(op_tok);
+        if (check("!=")) {
+            Token* op_tok = peek();
+            consume("!=");
+            node = make_binary(NodeKind::ND_NE, node, relational(), op_tok);
             continue;
         }
-
         return node;
     }
-    
 }
 
 Node* Parser::relational()
 {
-    Node* node=add();
-    for(;;)
-    {
-        if(Tkequal(this->current,">=" ))
-        {
-            Token* op_tok = current;
-            current=this->current->get_next();
-            node=new Node(NodeKind::ND_LE,add(),node);
-            node->set_tok(op_tok);
+    Node* node = add();
+    for (;;) {
+        if (check(">=")) {
+            Token* op_tok = peek();
+            consume(">=");
+            node = make_binary(NodeKind::ND_LE, add(), node, op_tok);
             continue;
         }
-        if(Tkequal(this->current,">" ))
-        {
-            Token* op_tok = current;
-            current=this->current->get_next();
-            node=new Node(NodeKind::ND_LT,add(),node);
-            node->set_tok(op_tok);
+        if (check(">")) {
+            Token* op_tok = peek();
+            consume(">");
+            node = make_binary(NodeKind::ND_LT, add(), node, op_tok);
             continue;
         }
-        if(Tkequal(this->current,"<=" ))
-        {
-            Token* op_tok = current;
-            current=this->current->get_next();
-            node=new Node(NodeKind::ND_LE,node,add());
-            node->set_tok(op_tok);
+        if (check("<=")) {
+            Token* op_tok = peek();
+            consume("<=");
+            node = make_binary(NodeKind::ND_LE, node, add(), op_tok);
             continue;
         }
-        if(Tkequal(this->current,"<" ))
-        {
-            Token* op_tok = current;
-            current=this->current->get_next();
-            node=new Node(NodeKind::ND_LT,node,add());
-            node->set_tok(op_tok);
+        if (check("<")) {
+            Token* op_tok = peek();
+            consume("<");
+            node = make_binary(NodeKind::ND_LT, node, add(), op_tok);
             continue;
         }
-
         return node;
     }
-    
 }
 
 
@@ -301,15 +269,15 @@ Node* Parser::add() {
     Node* node = mul();
 
     for (;;) {
-        if (Tkequal(this->current, "+")) {
-            Token* op_tok = current;
-            current = this->current->get_next();
+        if (check("+")) {
+            Token* op_tok = peek();
+            consume("+");
             node = new_add(node, mul(), op_tok);
             continue;
         }
-        if (Tkequal(this->current, "-")) {
-            Token* op_tok = current;
-            current = this->current->get_next();
+        if (check("-")) {
+            Token* op_tok = peek();
+            consume("-");
             node = new_sub(node, mul(), op_tok);
             continue;
         }
@@ -320,23 +288,18 @@ Node* Parser::add() {
 // Mid level
 Node* Parser::mul()
 {
-    Node* node=unary();
-    for(;;)
-    {
-        if(Tkequal(this->current, "*"))
-        {
-            Token* op_tok = current;
-            current=this->current->get_next();
-            node=new Node(NodeKind::ND_MUL,node,unary());
-            node->set_tok(op_tok);
+    Node* node = unary();
+    for (;;) {
+        if (check("*")) {
+            Token* op_tok = peek();
+            consume("*");
+            node = make_binary(NodeKind::ND_MUL, node, unary(), op_tok);
             continue;
         }
-        if(Tkequal(this->current, "/"))
-        {
-            Token* op_tok = current;
-            current=this->current->get_next();
-            node=new Node(NodeKind::ND_DIV,node,unary());
-            node->set_tok(op_tok);
+        if (check("/")) {
+            Token* op_tok = peek();
+            consume("/");
+            node = make_binary(NodeKind::ND_DIV, node, unary(), op_tok);
             continue;
         }
         return node;
@@ -346,66 +309,54 @@ Node* Parser::mul()
 // Top level
 Node* Parser::primary()
 {
-    if(Tkequal(this->current,"("))
-    {
-        current=this->current->get_next();//skip operator (
-        Node* node=expr();
-        Tkskip(current,")");
+    if (consume("(")) {
+        Node* node = expr();
+        expect(")");
         return node;
     }
-    if (current->get_kind() == TokenKind::IDENT) {
-        Token* ident_tok = current;
-        Obj* var = find_var(current);
+    if (peek()->get_kind() == TokenKind::IDENT) {
+        Token* ident_tok = peek();
+        Obj* var = find_var(peek());
         if (!var)
-            var = new_lvar(std::string(current->get_content()));
-        current = current->get_next();
+            var = new_lvar(std::string(peek()->get_content()));
+        advance();
         return new_var_node(var, ident_tok);
     }
-    if(this->current->get_kind()==TokenKind::NUM)
-    {
-        Token* num_tok = current;
-        Node* node=new Node(current->get_number());
+    if (peek()->get_kind() == TokenKind::NUM) {
+        Token* num_tok = peek();
+        Node* node = new Node(peek()->get_number());
         node->set_tok(num_tok);
-        current=current->get_next();
+        advance();
         return node;
     }
-    diagnostic::error_at(current->get_content(), "expected an expression");
+    diagnostic::error_at(peek()->get_content(), "expected an expression");
 }   
 
 // unary = ("+" | "-" | "*" | "&") unary
 Node* Parser::unary()
 {
-    if(Tkequal(this->current,"+"))
-    {
-        current=this->current->get_next();
+    if (consume("+"))
         return unary();
-    }
-    if(Tkequal(this->current,"-"))
-    {
-        Token* minus_tok = current;
-        current=this->current->get_next();
-        Node* node = new Node(NodeKind::ND_NEG,unary());
+    if (check("-")) {
+        Token* minus_tok = peek();
+        consume("-");
+        Node* node = new Node(NodeKind::ND_NEG, unary());
         node->set_tok(minus_tok);
         return node;
     }
-    if(Tkequal(this->current,"&"))
-    {
-        
-        Token* addr_tok = current;
-        current=this->current->get_next();
-        Node* node=new Node(NodeKind::ND_ADDR,unary());
+    if (check("&")) {
+        Token* addr_tok = peek();
+        consume("&");
+        Node* node = new Node(NodeKind::ND_ADDR, unary());
         node->set_tok(addr_tok);
         return node;
     }
-    if(Tkequal(this->current,"*"))
-    {
-        
-        Token* deref_tok = current;
-        current=this->current->get_next();
-        Node* node=new Node(NodeKind::ND_DEREF,unary());
+    if (check("*")) {
+        Token* deref_tok = peek();
+        consume("*");
+        Node* node = new Node(NodeKind::ND_DEREF, unary());
         node->set_tok(deref_tok);
         return node;
     }
-
     return primary();
 }
