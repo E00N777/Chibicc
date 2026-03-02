@@ -5,8 +5,17 @@
 #include "type.h"
 #include <utility>
 
+// Entry point: parse the whole program (expects "{" then compound_stmt); returns the function with body and locals.
+Function* Parser::parse() {
+    expect("{");
+    Function* prog = new Function();
+    prog->set_body(compound_stmt());
+    prog->set_locals(locals);
+    return prog;
+}
 
-// Find a local variable by name.
+//=================================== Variable and local symbol management ===================================
+// Find a local variable by name in the current scope (locals list).
 Obj* Parser::find_var(Token* tok) {
     std::string_view name = tok->get_content();
     for (Obj* var = locals; var; var = var->get_next())
@@ -15,28 +24,37 @@ Obj* Parser::find_var(Token* tok) {
     return nullptr;
 }
 
+// Create an AST node for a variable reference.
 Node* Parser::new_var_node(Obj* var, Token* tok) {
     Node* node = new Node(NodeKind::ND_VAR, var);
     node->set_tok(tok);
     return node;
 }
 
-Obj* Parser::new_lvar(const std::string& name) {
-    Obj* var = new Obj(name, locals);
+// Allocate a new local variable and prepend it to the locals list.
+Obj* Parser::new_lvar(const std::string& name,Type* ty) {
+    Obj* var = new Obj(name, ty, locals);
     locals = var;
     return var;
 }
+//=================================== End of Variable and local symbol management ===================================
 
+//=================================== Generic AST node construction ===================================
+// Create a binary-operation AST node (e.g. add, sub, assign).
 Node* Parser::new_binary(NodeKind kind, Node* lhs, Node* rhs, Token* tok) {
     Node* node = new Node(kind, lhs, rhs);
     node->set_tok(tok);
     return node;
 }
 
+// Wrapper for new_binary; builds a binary node with the given operator token.
 Node* Parser::make_binary(NodeKind kind, Node* lhs, Node* rhs, Token* op_tok) {
     return new_binary(kind, lhs, rhs, op_tok);
 }
+//=================================== End of Generic AST node construction ===================================
 
+//=================================== Pointer arithmetic ===================================
+// Create an integer literal AST node.
 Node* Parser::new_num(int val, Token* tok) {
     Node* node = new Node(val);
     node->set_tok(tok);
@@ -88,15 +106,90 @@ Node* Parser::new_sub(Node* lhs, Node* rhs, Token* tok) {
 
     diagnostic::error_tok(tok, "invalid operands");
 }
+//=================================== End of Pointer arithmetic ===================================
 
+//=================================== Declaration parsing ===================================
+// Parse a declaration specifier: int
+Type* Parser::declspec()
+{
+    expect("int");
+    return get_ty_int();
+}
+
+std::pair<Type*,Token*> Parser::declarator(Type* basety)
+{
+    Type* ty=basety;
+    while(consume("*")) // Parse pointer types (e.g. int*,int** ...etc)
+        ty=Type::pointer_to(ty);
+
+    if(peek()->get_kind()!=TokenKind::IDENT)
+        diagnostic::error_at(peek()->get_content(), "expected an identifier");
+    Token* ident_tok=peek();
+    advance();
+    return {ty,ident_tok};
+}
+
+
+Node* Parser::declaration()
+{
+    Token* decl_tok=peek();
+    Type *basety=declspec(); //consume "int"
+
+    Node head(NodeKind::ND_EXPR_STMT);
+    Node* cur=&head;
+    bool first=true; // first declaration in the list
+    //int a,b=10;
+    while(!check(";"))
+    {
+        // for multiple declarations
+        if(!first) 
+        {
+            expect(",");
+        }
+        first=false;
+        
+        auto [ty,ident_tok]=declarator(basety);
+        std::string name(ident_tok->get_content());
+        Obj* var=new_lvar(name,ty);
+
+        if(!check("="))
+            continue;
+
+        Token* assign_tk=peek();
+        consume("=");
+        Node* rhs=assign();
+        Node* lhs= new_var_node(var,ident_tok);
+        Node* assign_node=make_binary(NodeKind::ND_ASSIGN,lhs,rhs,assign_tk);
+        Node* stmt_node=new Node(NodeKind::ND_EXPR_STMT,assign_node);
+        stmt_node->set_tok(assign_tk);
+        cur->set_nextstmt(stmt_node);
+        cur=stmt_node;
+    }
+    expect(";");
+
+    Node* node=new Node(NodeKind::ND_BLOCK);
+    node->set_tok(decl_tok);
+    node->set_body(head.get_nextstmt());
+    return node;
+
+}
+//=================================== End of Declaration parsing ===================================
+
+
+//=================================== Top-level parse and compound/statement ===================================
+// Parse a compound statement: { stmt; stmt; ... } and return a block node.
 Node* Parser::compound_stmt()
 {
     Token* block_tok = peek();
     Node head(NodeKind::ND_EXPR_STMT);  // sentinel for statement list
     Node* cur = &head;
-    while (!check("}")) {
-        Node* stmt_node = stmt();
-        cur->set_nextstmt(stmt_node);
+
+    while (!check("}")){
+        if(check("int")){
+            cur->set_nextstmt(declaration());
+        }else {
+            cur->set_nextstmt(stmt());
+        }
         cur = cur->get_nextstmt();
         add_type(cur);
     }
@@ -107,14 +200,11 @@ Node* Parser::compound_stmt()
     return node;
 }
 
-Function* Parser::parse() {
-    expect("{");
-    Function* prog = new Function();
-    prog->set_body(compound_stmt());
-    prog->set_locals(locals);
-    return prog;
-}
 
+//=================================== End of Top-level parse and compound/statement ===================================
+
+//=================================== Statement parsing ===================================
+// Parse a single statement: return, while, for, if, block, or expression statement.
 Node* Parser::stmt()
 {
     if (check("return")) {
@@ -177,6 +267,7 @@ Node* Parser::stmt()
     return expr_stmt();
 }
 
+// Parse an expression statement (expr;) or empty statement (;).
 Node* Parser::expr_stmt()
 {
     Token* stmt_tok = peek();
@@ -190,8 +281,10 @@ Node* Parser::expr_stmt()
     expect(";");
     return node;
 }
+//=================================== End of Statement parsing ===================================
 
-
+//=================================== Expression parsing — assignment and top level ===================================
+// Parse assignment (right-associative); also parses equality and below.
 Node* Parser::assign()
 {
     Node* node = equality();
@@ -205,12 +298,15 @@ Node* Parser::assign()
     return node;
 }
 
-//lowest level
+// Top-level expression entry; currently just delegates to assign (lowest precedence).
 Node* Parser::expr()
 {
     return assign();
 }
+//=================================== End of Expression parsing — assignment and top level ===================================
 
+//=================================== Expression parsing — equality and relational ===================================
+// Parse == and != (equality operators).
 Node* Parser::equality()
 {
     Node* node = relational();
@@ -232,6 +328,7 @@ Node* Parser::equality()
     }
 }
 
+// Parse >=, >, <=, < (relational operators).
 Node* Parser::relational()
 {
     Node* node = add();
@@ -263,8 +360,10 @@ Node* Parser::relational()
         return node;
     }
 }
+//=================================== End of Expression parsing — equality and relational ===================================
 
-
+//=================================== Expression parsing — additive ===================================
+// Parse + and - (additive operators); uses typed new_add/new_sub for pointer arithmetic.
 Node* Parser::add() {
     Node* node = mul();
 
@@ -284,8 +383,10 @@ Node* Parser::add() {
         return node;
     }
 }
+//=================================== End of Expression parsing — additive ===================================
 
-// Mid level
+//=================================== Expression parsing — multiplicative ===================================
+// Parse * and / (multiplicative operators).
 Node* Parser::mul()
 {
     Node* node = unary();
@@ -305,8 +406,10 @@ Node* Parser::mul()
         return node;
     }
 }
+//=================================== End of Expression parsing — multiplicative ===================================
 
-// Top level
+//=================================== Expression parsing — unary and primary ===================================
+// Parse primary expression: (expr), identifier, or number.
 Node* Parser::primary()
 {
     if (consume("(")) {
@@ -318,7 +421,7 @@ Node* Parser::primary()
         Token* ident_tok = peek();
         Obj* var = find_var(peek());
         if (!var)
-            var = new_lvar(std::string(peek()->get_content()));
+            diagnostic::error_tok(ident_tok, "undefined variable");
         advance();
         return new_var_node(var, ident_tok);
     }
@@ -330,9 +433,9 @@ Node* Parser::primary()
         return node;
     }
     diagnostic::error_at(peek()->get_content(), "expected an expression");
-}   
+}
 
-// unary = ("+" | "-" | "*" | "&") unary
+// Parse unary: +, -, *, & applied to unary, or primary.
 Node* Parser::unary()
 {
     if (consume("+"))
@@ -360,3 +463,4 @@ Node* Parser::unary()
     }
     return primary();
 }
+//=================================== End of Expression parsing — unary and primary ===================================

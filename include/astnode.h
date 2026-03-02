@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include <string_view>
+
 
 // Forward declarations.
 class Node;
@@ -12,17 +12,22 @@ class Obj {
 public:
     explicit Obj(std::string name, Obj* next = nullptr)
         : next_(next), name_(std::move(name)), offset_(0) {}
+    explicit Obj(std::string name, Type* ty, Obj* next = nullptr)
+        : next_(next), name_(std::move(name)), offset_(0), ty_(ty) {}
 
     Obj* get_next() const { return next_; }
     void set_next(Obj* next) { next_ = next; }
     const std::string& get_name() const { return name_; }
     int get_offset() const { return offset_; }
     void set_offset(int offset) { offset_ = offset; }
+    Type* get_ty() const { return ty_; }
+    void set_ty(Type* ty) { ty_ = ty; }
 
 private:
     Obj* next_;
     std::string name_;
     int offset_;
+    Type* ty_ = nullptr;  // Type of this variable
 };
 
 // Function: body statements and list of local variables.

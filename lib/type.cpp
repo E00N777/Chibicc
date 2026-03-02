@@ -1,5 +1,6 @@
 #include "type.h"
 #include "astnode.h"
+#include "diagnostic.h"
 
 Type* Type::ty_int = nullptr;
 
@@ -45,19 +46,21 @@ void add_type(Node* node) {
     case NodeKind::ND_NE:
     case NodeKind::ND_LT:
     case NodeKind::ND_LE:
-    case NodeKind::ND_VAR:
     case NodeKind::ND_NUM:
         node->set_ty(get_ty_int());
+        return;
+    case NodeKind::ND_VAR:
+        node->set_ty(node->get_var()->get_ty());
         return;
     case NodeKind::ND_ADDR:
         node->set_ty(Type::pointer_to(node->get_lhs()->get_ty()));
         return;
     case NodeKind::ND_DEREF: {
         Type* lhs_ty = node->get_lhs()->get_ty();
-        if (lhs_ty->get_kind() == TypeKind::TY_PTR)
-            node->set_ty(lhs_ty->get_base());
+        if (!lhs_ty||lhs_ty->get_kind() != TypeKind::TY_PTR)
+            diagnostic::error_tok(node->get_tok(), "invalid pointer dereference");
         else
-            node->set_ty(get_ty_int());
+            node->set_ty(lhs_ty->get_base());
         return;
     }
     default:
