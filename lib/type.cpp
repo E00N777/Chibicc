@@ -63,6 +63,9 @@ void add_type(Node* node) {
             node->set_ty(lhs_ty->get_base());
         return;
     }
+    case NodeKind::ND_FUNCALL:
+        node->set_ty(get_ty_int());
+        return;
     default:
         return;
     }

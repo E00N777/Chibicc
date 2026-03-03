@@ -2,9 +2,9 @@
 #include <string_view>
 
 enum class TokenKind{
-    PUNCT, //Punctuations
-    IDENT, //Identifiers
-    NUM, //Numeric literals
+    PUNCT, //Punctuations : operators like +, -, *, /, etc.
+    IDENT, //Identifiers : function name or variable name
+    NUM, //Numeric literals : integers like 1, 2, 3, etc.
     KEYWORD, //Keywords
     EOF_TK, //End-of-file markers
 };

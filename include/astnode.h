@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <string_view>
 
 
 // Forward declarations.
@@ -70,6 +71,7 @@ enum class NodeKind
     ND_FOR,       // for and while statement
     ND_ADDR,      // address of
     ND_DEREF,     // dereference
+    ND_FUNCALL,   // function call
 };
 
 class Node {
@@ -91,6 +93,8 @@ private:
     Node* inc = nullptr;
 
     Type* ty = nullptr;  // Type of this expression, e.g. int or pointer to int
+
+    std::string_view func_name; // used when kind == ND_FUNCALL for function name
 
 public:
     Node(NodeKind kind) : kind(kind) {}
@@ -125,4 +129,8 @@ public:
     Node* get_init() const { return init; }
     void set_inc(Node* i) { inc = i; }
     Node* get_inc() const { return inc; }
+
+    //Function call support
+    void set_func_name(std::string_view name) { func_name = name; }
+    std::string_view get_func_name() const { return func_name; }
 };

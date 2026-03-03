@@ -1,6 +1,7 @@
 #pragma once
 #include "astnode.h"
 #include "tokenize.h"
+#include <string_view>
 
 
 class Parser {
@@ -11,6 +12,7 @@ private:
     //=================================== Generic AST node construction ===================================
     static Node* new_binary(NodeKind kind, Node* lhs, Node* rhs, Token* tok);
     static Node* make_binary(NodeKind kind, Node* lhs, Node* rhs, Token* op_tok);
+    static Node* make_func_call(NodeKind kind,Token* op_tok,std::string_view func_name);
 
     //=================================== Expression parsing (precedence-climbing) ===================================
     Node* primary();    // (expr) | ident | num
@@ -67,6 +69,17 @@ public:
     }
 
     Token* peek() const { return current_; }
+
+    /// Returns the content of the current (next to consume) token.
+    std::string_view peek_content() const {
+        return current_ ? current_->get_content() : std::string_view{};
+    }
+
+    /// Returns true if the token after the current one has the given content (e.g. ident followed by "(").
+    bool is_followed_by(const char* str) const {
+        Token* next = current_ ? current_->get_next() : nullptr;
+        return next && Tkequal(next, str);
+    }
 
     void advance() { current_ = current_->get_next(); }
     //=================================== End of Token consumption ===================================

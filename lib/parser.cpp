@@ -51,6 +51,15 @@ Node* Parser::new_binary(NodeKind kind, Node* lhs, Node* rhs, Token* tok) {
 Node* Parser::make_binary(NodeKind kind, Node* lhs, Node* rhs, Token* op_tok) {
     return new_binary(kind, lhs, rhs, op_tok);
 }
+
+Node* Parser::make_func_call(NodeKind kind,Token* op_tok,std::string_view func_name)
+{
+    Node* node=new Node(kind,nullptr,nullptr);
+    node->set_tok(op_tok);
+    node->set_func_name(func_name);
+    return node;
+}
+
 //=================================== End of Generic AST node construction ===================================
 
 //=================================== Pointer arithmetic ===================================
@@ -418,6 +427,23 @@ Node* Parser::primary()
         return node;
     }
     if (peek()->get_kind() == TokenKind::IDENT) {
+        // Function call: ident followed by "(" (check next token, not current)
+        if (is_followed_by("("))
+        {
+            Token* func_name_tok=peek();
+            advance();
+            expect("(");
+            // Zero-arg call: accept () or (void)
+            if (consume(")"))
+                { /* no args */ }
+            else if (consume("void"))
+                expect(")");
+            else
+                diagnostic::error_at(peek()->get_content(), "expected ) or void");
+            Node* node=make_func_call(NodeKind::ND_FUNCALL,func_name_tok,func_name_tok->get_content());
+            return node;
+        }
+        //Variable name processing
         Token* ident_tok = peek();
         Obj* var = find_var(peek());
         if (!var)

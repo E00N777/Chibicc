@@ -75,6 +75,10 @@ void CodeGen::gen_expr(Node* node)
         gen_addr(node);
         std::cout << "    mov (%rax), %rax\n";
         return;
+    case NodeKind::ND_FUNCALL:
+        std::cout << "xor %rax, %rax\n";
+        std::cout << "call " << node->get_func_name() << "\n";
+        return;
     }
 
     gen_expr(node->get_rhs());
