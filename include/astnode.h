@@ -95,6 +95,7 @@ private:
     Type* ty = nullptr;  // Type of this expression, e.g. int or pointer to int
 
     std::string_view func_name; // used when kind == ND_FUNCALL for function name
+    Node* args = nullptr; // used for function call arguments (X86-64 calling convention)
 
 public:
     Node(NodeKind kind) : kind(kind) {}
@@ -133,4 +134,6 @@ public:
     //Function call support
     void set_func_name(std::string_view name) { func_name = name; }
     std::string_view get_func_name() const { return func_name; }
+    Node* get_args() const { return args; }
+    void set_args(Node* a) { args = a; }
 };

@@ -430,18 +430,7 @@ Node* Parser::primary()
         // Function call: ident followed by "(" (check next token, not current)
         if (is_followed_by("("))
         {
-            Token* func_name_tok=peek();
-            advance();
-            expect("(");
-            // Zero-arg call: accept () or (void)
-            if (consume(")"))
-                { /* no args */ }
-            else if (consume("void"))
-                expect(")");
-            else
-                diagnostic::error_at(peek()->get_content(), "expected ) or void");
-            Node* node=make_func_call(NodeKind::ND_FUNCALL,func_name_tok,func_name_tok->get_content());
-            return node;
+            return funcall();
         }
         //Variable name processing
         Token* ident_tok = peek();
@@ -490,3 +479,36 @@ Node* Parser::unary()
     return primary();
 }
 //=================================== End of Expression parsing — unary and primary ===================================
+
+//=================================== Expression parsing — function call ===================================
+Node* Parser::funcall()
+{
+    Token* func_name_tok=peek();
+    advance();
+    expect("(");
+    // Zero-arg call: accept () or (void)
+    // if (consume(")"))
+    //     { /* no args */ }
+    // else if (consume("void"))
+    //     expect(")");
+    // else
+    //     diagnostic::error_at(peek()->get_content(), "expected ) or void");
+
+    Node head(NodeKind::ND_EXPR_STMT);
+    Node* cur=&head;
+    while(!check(")"))
+    {
+        if(consume("void"))
+            continue;
+        if(cur!=&head)
+            expect(",");
+        Node* arg=assign();
+        cur->set_nextstmt(arg);
+        cur=arg;
+    }
+    expect(")");
+    
+    Node* node=make_func_call(NodeKind::ND_FUNCALL,func_name_tok,func_name_tok->get_content());
+    node->set_args(head.get_nextstmt());
+    return node;
+}

@@ -76,6 +76,18 @@ void CodeGen::gen_expr(Node* node)
         std::cout << "    mov (%rax), %rax\n";
         return;
     case NodeKind::ND_FUNCALL:
+        int arg_count = 0;
+        for(Node* arg=node->get_args();arg;arg=arg->get_nextstmt())
+        {
+            gen_expr(arg);
+            push();
+            arg_count++;
+           
+        }
+        for(int i = arg_count-1;i>=0;i--)
+        {
+            pop(args_regs[i].data());
+        }
         std::cout << "xor %rax, %rax\n";
         std::cout << "call " << node->get_func_name() << "\n";
         return;

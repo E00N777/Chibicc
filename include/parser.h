@@ -15,7 +15,8 @@ private:
     static Node* make_func_call(NodeKind kind,Token* op_tok,std::string_view func_name);
 
     //=================================== Expression parsing (precedence-climbing) ===================================
-    Node* primary();    // (expr) | ident | num
+    Node* primary();    // (expr) | ident funcall? | num
+    Node* funcall();    // ident "(" (assign ("," assign)*)? ")"
     Node* mul();        // * /
     Node* expr();       // top-level entry
     Node* unary();      // + - * &
@@ -41,6 +42,7 @@ private:
     Type* declspec();
     std::pair<Type*,Token*> declarator(Type* basety);
     Node* declaration();
+    
 
 public:
     explicit Parser(Token* tk) : current_(tk) {}
