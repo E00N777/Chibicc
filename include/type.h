@@ -1,6 +1,7 @@
 #pragma once
 
 class Node;
+class ASTContext;
 
 enum class TypeKind {
     TY_INT,
@@ -16,8 +17,6 @@ public:
     Type* get_base() const { return base_; }
     void set_base(Type* base) { base_ = base; }
 
-    static Type* ty_int;
-    static Type* pointer_to(Type* base);
 
 private:
     TypeKind kind_;
@@ -27,7 +26,7 @@ private:
     Type& operator=(const Type&) = delete;
 };
 
-bool is_integer(Type* ty);
+bool is_integer(Type* ty,ASTContext& ctx);
 // Returns the singleton int type (creates it on first use).
-Type* get_ty_int();
-void add_type(Node* node);
+Type* get_ty_int(ASTContext& ctx);
+void add_type(Node* node,ASTContext& ctx);

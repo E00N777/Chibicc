@@ -1,37 +1,31 @@
 #include "type.h"
 #include "astnode.h"
+#include "context.h"
 #include "diagnostic.h"
 
-Type* Type::ty_int = nullptr;
-
-Type* get_ty_int() {
-    if (!Type::ty_int)
-        Type::ty_int = new Type(TypeKind::TY_INT);
-    return Type::ty_int;
+Type* get_ty_int(ASTContext& ctx) {
+    return ctx.get_int_type();
 }
 
-Type* Type::pointer_to(Type* base) {
-    return new Type(TypeKind::TY_PTR, base);
-}
 
-bool is_integer(Type* ty) {
+bool is_integer(Type* ty,ASTContext& ctx) {
     return ty && ty->get_kind() == TypeKind::TY_INT;
 }
 
 // Recursively assign type to each AST node (bottom-up).
-void add_type(Node* node) {
+void add_type(Node* node,ASTContext& ctx) {
     if (!node || node->get_ty())
         return;
     //simple coverage for all nodes
-    add_type(node->get_lhs());
-    add_type(node->get_rhs());
-    add_type(node->get_condition());
-    add_type(node->get_then());
-    add_type(node->get_els());
-    add_type(node->get_init());
-    add_type(node->get_inc());
+    add_type(node->get_lhs(),ctx);
+    add_type(node->get_rhs(),ctx);
+    add_type(node->get_condition(),ctx);
+    add_type(node->get_then(),ctx);
+    add_type(node->get_els(),ctx);
+    add_type(node->get_init(),ctx);
+    add_type(node->get_inc(),ctx);
     for (Node* n = node->get_body(); n; n = n->get_nextstmt())
-        add_type(n);
+        add_type(n,ctx);
    
     switch (node->get_nodekind()) {
     case NodeKind::ND_ADD:
@@ -47,13 +41,13 @@ void add_type(Node* node) {
     case NodeKind::ND_LT:
     case NodeKind::ND_LE:
     case NodeKind::ND_NUM:
-        node->set_ty(get_ty_int());
+        node->set_ty(get_ty_int(ctx));
         return;
     case NodeKind::ND_VAR:
         node->set_ty(node->get_var()->get_ty());
         return;
     case NodeKind::ND_ADDR:
-        node->set_ty(Type::pointer_to(node->get_lhs()->get_ty()));
+        node->set_ty(ctx.make_ptr_type(node->get_lhs()->get_ty()));
         return;
     case NodeKind::ND_DEREF: {
         Type* lhs_ty = node->get_lhs()->get_ty();
@@ -64,7 +58,7 @@ void add_type(Node* node) {
         return;
     }
     case NodeKind::ND_FUNCALL:
-        node->set_ty(get_ty_int());
+        node->set_ty(get_ty_int(ctx));
         return;
     default:
         return;

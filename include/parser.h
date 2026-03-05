@@ -3,16 +3,18 @@
 #include "tokenize.h"
 #include <string_view>
 
+class ASTContext;
 
 class Parser {
 private:
     Token* current_;
     Obj* locals = nullptr;  // All local variables created during parsing (linked list).
+    ASTContext& ctx_;
 
     //=================================== Generic AST node construction ===================================
-    static Node* new_binary(NodeKind kind, Node* lhs, Node* rhs, Token* tok);
-    static Node* make_binary(NodeKind kind, Node* lhs, Node* rhs, Token* op_tok);
-    static Node* make_func_call(NodeKind kind,Token* op_tok,std::string_view func_name);
+    Node* new_binary(NodeKind kind, Node* lhs, Node* rhs, Token* tok);
+    Node* make_binary(NodeKind kind, Node* lhs, Node* rhs, Token* op_tok);
+    Node* make_func_call(NodeKind kind,Token* op_tok,std::string_view func_name);
 
     //=================================== Expression parsing (precedence-climbing) ===================================
     Node* primary();    // (expr) | ident funcall? | num
@@ -30,11 +32,11 @@ private:
 
     //=================================== Variable and local symbol management ===================================
     Obj* find_var(Token* tok);
-    static Node* new_var_node(Obj* var, Token* tok);
+    Node* new_var_node(Obj* var, Token* tok);
     Obj* new_lvar(const std::string& name,Type* ty);
 
     //=================================== Pointer arithmetic (typed add/sub) ===================================
-    static Node* new_num(int val, Token* tok);
+    Node* new_num(int val, Token* tok);
     Node* new_add(Node* lhs, Node* rhs, Token* tok);
     Node* new_sub(Node* lhs, Node* rhs, Token* tok);
 
@@ -45,7 +47,7 @@ private:
     
 
 public:
-    explicit Parser(Token* tk) : current_(tk) {}
+    explicit Parser(Token* tk,ASTContext& ctx) : current_(tk) ,ctx_(ctx){}
 
     //=================================== Entry point ===================================
     Function* parse();

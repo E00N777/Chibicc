@@ -1,6 +1,9 @@
 #pragma once
 #include <string_view>
 
+
+class ASTContext;
+
 enum class TokenKind{
     PUNCT, //Punctuations : operators like +, -, *, /, etc.
     IDENT, //Identifiers : function name or variable name
@@ -42,6 +45,6 @@ class Token{
 };
 
 // Implement in tokenize.cpp. Input: source code string.
-Token* Tokenize(char* Input, const char* filename = "<input>");
+Token* Tokenize(char* Input, ASTContext& ctx,const char* filename = "<input>");
 void Tkskip(Token*& TK, const char* op);
 bool Tkequal(Token* TK, const char* op);
