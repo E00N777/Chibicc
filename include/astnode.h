@@ -42,7 +42,6 @@ public:
     void set_locals(Obj* locals) { locals_ = locals; }
     int get_stack_size() const { return stack_size_; }
     void set_stack_size(int size) { stack_size_ = size; }
-
 private:
     Node* body_ = nullptr;
     Obj* locals_ = nullptr;
