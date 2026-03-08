@@ -6,9 +6,8 @@
 #include <cstring>
 #include <string_view>
 
-
 static constexpr std::array<std::string_view, 4> multi_char_ops = {"==", "!=", ">=", "<="};
-static constexpr std::array<std::string_view, 6> keywords = {"if", "else", "return", "for", "while","int"};
+static constexpr std::array<std::string_view, 6> keywords = {"if", "else", "return", "for", "while", "int"};
 
 
 bool Tkequal(Token* TK,const char* op)
@@ -74,36 +73,31 @@ static bool is_ident2(char c) {
     return is_ident1(c) || ('0' <= c && c <= '9');
 }
 
-Token* Tokenize(char* Input, ASTContext& ctx ,const char* filename) {
+Token* Tokenize(char* Input, ASTContext& ctx, const char* filename) {
     (void)filename;
-    // Create a dummy head
-    Token head(TokenKind::EOF_TK,{},0);
-    Token* current=&head;
+    Token head(TokenKind::EOF_TK, {}, 0);
+    Token* current = &head;
 
     while (*Input) {
-        // Skip whitespace
         if (std::isspace(*Input))
         {
             Input++;
-            continue;      
-        }
-
-        if(std::isdigit(*Input))
-        {
-            char* temp=Input;
-            int val=std::strtol(Input,&Input,10);
-            int len=Input-temp;
-
-            Token* new_token=ctx.make_token(TokenKind::NUM,std::string_view(temp,len),val);
-            current->set_next(new_token);
-            current=current->get_next();
             continue;
         }
-        // Identifiers (multi-character: letters, digits, underscore)
+
+        if (std::isdigit(*Input)) {
+            char* temp = Input;
+            int val = std::strtol(Input, &Input, 10);
+            int len = static_cast<int>(Input - temp);
+            Token* new_token = ctx.make_token(TokenKind::NUM, std::string_view(temp, len), val);
+            current->set_next(new_token);
+            current = current->get_next();
+            continue;
+        }
         if (is_ident1(*Input)) {
             char* start = Input;
             do { Input++; } while (is_ident2(*Input));
-            Token* new_token =ctx.make_token(TokenKind::IDENT, std::string_view(start, Input - start));
+            Token* new_token = ctx.make_token(TokenKind::IDENT, std::string_view(start, Input - start));
             current->set_next(new_token);
             current = current->get_next();
             continue;
@@ -122,21 +116,17 @@ Token* Tokenize(char* Input, ASTContext& ctx ,const char* filename) {
         }
         if (found_multi_ops) continue;
 
-        if(std::ispunct(*Input))
-        {
-            Token* new_token=ctx.make_token(TokenKind::PUNCT,std::string_view(Input,1));
+        if (std::ispunct(*Input)) {
+            Token* new_token = ctx.make_token(TokenKind::PUNCT, std::string_view(Input, 1));
             current->set_next(new_token);
-            current=current->get_next();
+            current = current->get_next();
             Input++;
             continue;
         }
         diagnostic::error_at(std::string_view(Input, 1), "invalid token");
     }
-    // Append EOF token
-    Token* eof_token=ctx.make_token(TokenKind::EOF_TK, std::string_view(Input, 0));
+    Token* eof_token = ctx.make_token(TokenKind::EOF_TK, std::string_view(Input, 0));
     current->set_next(eof_token);
-
     convert_keyword(head.get_next());
     return head.get_next();
-
 }

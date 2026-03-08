@@ -8,6 +8,8 @@
 #include <utility>
 #include <vector>
 
+// Central ownership for all AST/symbol objects. Parser and codegen hold raw pointers;
+// ASTContext keeps unique_ptrs so that everything is freed when ctx goes out of scope.
 class ASTContext {
 public:
     template<class... Args>

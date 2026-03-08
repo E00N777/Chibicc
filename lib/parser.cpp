@@ -6,7 +6,7 @@
 #include "type.h"
 #include <utility>
 
-// Entry point: parse the whole program (expects "{" then compound_stmt); returns the function with body and locals.
+// --- Program: list of function definitions. Types come from declspec/declarator; Obj from declaration(). ---
 Function* Parser::parse() {
     Function head={};
     Function* cur=&head;
@@ -20,8 +20,7 @@ Function* Parser::parse() {
     
 }
 
-//=================================== Variable and local symbol management ===================================
-// Find a local variable by name in the current scope (locals list).
+// --- Local symbols: find by name in current function's locals list ---
 Obj* Parser::find_var(Token* tok) {
     std::string_view name = tok->get_content();
     for (Obj* var = locals; var; var = var->get_next())
@@ -30,30 +29,25 @@ Obj* Parser::find_var(Token* tok) {
     return nullptr;
 }
 
-// Create an AST node for a variable reference.
 Node* Parser::new_var_node(Obj* var, Token* tok) {
     Node* node = ctx_.make_node(NodeKind::ND_VAR, var);
     node->set_tok(tok);
     return node;
 }
 
-// Allocate a new local variable and prepend it to the locals list.
-Obj* Parser::new_lvar(const std::string& name,Type* ty) {
+Obj* Parser::new_lvar(const std::string& name, Type* ty) {
     Obj* var = ctx_.make_obj(name, ty, locals);
     locals = var;
     return var;
 }
-//=================================== End of Variable and local symbol management ===================================
 
-//=================================== Generic AST node construction ===================================
-// Create a binary-operation AST node (e.g. add, sub, assign).
+// --- Binary / function-call node helpers ---
 Node* Parser::new_binary(NodeKind kind, Node* lhs, Node* rhs, Token* tok) {
     Node* node = ctx_.make_node(kind, lhs, rhs);
     node->set_tok(tok);
     return node;
 }
 
-// Wrapper for new_binary; builds a binary node with the given operator token.
 Node* Parser::make_binary(NodeKind kind, Node* lhs, Node* rhs, Token* op_tok) {
     return new_binary(kind, lhs, rhs, op_tok);
 }
@@ -66,17 +60,14 @@ Node* Parser::make_func_call(NodeKind kind,Token* op_tok,std::string_view func_n
     return node;
 }
 
-//=================================== End of Generic AST node construction ===================================
-
-//=================================== Pointer arithmetic ===================================
-// Create an integer literal AST node.
+// --- Literal and typed add/sub (parser calls add_type so +/- can distinguish int vs pointer) ---
 Node* Parser::new_num(int val, Token* tok) {
     Node* node = ctx_.make_node(val);
     node->set_tok(tok);
     return node;
 }
 
-// int+int => add; ptr+int or int+ptr => scale int by 8 then add.
+// int+int: plain add. ptr+int / int+ptr: scale int by 8 (pointer size), then add.
 Node* Parser::new_add(Node* lhs, Node* rhs, Token* tok) {
     add_type(lhs, ctx_);
     add_type(rhs, ctx_);
@@ -87,17 +78,14 @@ Node* Parser::new_add(Node* lhs, Node* rhs, Token* tok) {
     if (lhs->get_ty()->get_base() && rhs->get_ty()->get_base())
         diagnostic::error_tok(tok, "invalid operands");
 
-    // Canonicalize num+ptr => ptr+num.
     if (!lhs->get_ty()->get_base() && rhs->get_ty()->get_base())
         std::swap(lhs, rhs);
-
-    // ptr + num: scale rhs by 8 (element size).
     rhs = new_binary(NodeKind::ND_MUL, rhs, new_num(8, tok), tok);
     return new_binary(NodeKind::ND_ADD, lhs, rhs, tok);
 }
 
 
-// int-int => sub; ptr-int => scale then sub; ptr-ptr => byte diff / 8.
+// int-int: sub. ptr-int: scale then sub. ptr-ptr: byte difference / 8.
 Node* Parser::new_sub(Node* lhs, Node* rhs, Token* tok) {
     add_type(lhs, ctx_);
     add_type(rhs, ctx_);
@@ -121,48 +109,43 @@ Node* Parser::new_sub(Node* lhs, Node* rhs, Token* tok) {
 
     diagnostic::error_tok(tok, "invalid operands");
 }
-//=================================== End of Pointer arithmetic ===================================
 
-//=================================== Declaration parsing ===================================
-// Parse a declaration specifier: int
+// --- Declaration specifier: currently only "int" ---
 Type* Parser::declspec()
 {
     expect("int");
     return ctx_.get_int_type();
 }
 
-std::pair<Type*,Token*> Parser::declarator(Type* basety)
+// Declarator: * * ident [ () ]. Returns (full type, name token). () suffix makes a function type.
+std::pair<Type*, Token*> Parser::declarator(Type* basety)
 {
-    Type* ty=basety;
-    while(consume("*")) // Parse pointer types (e.g. int*,int** ...etc)
-        ty=ctx_.make_ptr_type(ty);
+    Type* ty = basety;
+    while (consume("*"))
+        ty = ctx_.make_ptr_type(ty);
 
-    if(peek()->get_kind()!=TokenKind::IDENT)
+    if (peek()->get_kind() != TokenKind::IDENT)
         diagnostic::error_at(peek()->get_content(), "expected an identifier");
     Token* ident_tok=peek();
     advance();
-    if(consume("("))
-    {
+    if (consume("(")) {
         expect(")");
         ty = ctx_.make_func_type(ty);
     }
-    return {ty,ident_tok};
+    return {ty, ident_tok};
 }
 
-
+// int a, b = 3; : declspec once, then per-declarator type + new_lvar; optional init as assign stmt.
 Node* Parser::declaration()
 {
-    Token* decl_tok=peek();
-    Type *basety=declspec(); //consume "int"
+    Token* decl_tok = peek();
+    Type* basety = declspec();
 
     Node head(NodeKind::ND_EXPR_STMT);
-    Node* cur=&head;
-    bool first=true; // first declaration in the list
-    //int a,b=10;
-    while(!check(";"))
-    {
-        // for multiple declarations
-        if(!first) 
+    Node* cur = &head;
+    bool first = true;
+    while (!check(";")) {
+        if (!first) 
         {
             expect(",");
         }
@@ -191,25 +174,20 @@ Node* Parser::declaration()
     node->set_tok(decl_tok);
     node->set_body(head.get_nextstmt());
     return node;
-
 }
-//=================================== End of Declaration parsing ===================================
 
-
-//=================================== Top-level parse and compound/statement ===================================
-// Parse a compound statement: { stmt; stmt; ... } and return a block node.
+// --- Compound statement: { stmt* }. Each stmt is declaration() or stmt(). add_type called after each. ---
 Node* Parser::compound_stmt()
 {
     Token* block_tok = peek();
-    Node head(NodeKind::ND_EXPR_STMT);  // sentinel for statement list
+    Node head(NodeKind::ND_EXPR_STMT);
     Node* cur = &head;
 
-    while (!check("}")){
-        if(check("int")){
+    while (!check("}")) {
+        if (check("int"))
             cur->set_nextstmt(declaration());
-        }else {
+        else
             cur->set_nextstmt(stmt());
-        }
         cur = cur->get_nextstmt();
         add_type(cur,ctx_);
     }
@@ -220,11 +198,7 @@ Node* Parser::compound_stmt()
     return node;
 }
 
-
-//=================================== End of Top-level parse and compound/statement ===================================
-
-//=================================== Statement parsing ===================================
-// Parse a single statement: return, while, for, if, block, or expression statement.
+// --- Statement: return | while | for | if | block | expr ; ---
 Node* Parser::stmt()
 {
     if (check("return")) {
@@ -287,7 +261,6 @@ Node* Parser::stmt()
     return expr_stmt();
 }
 
-// Parse an expression statement (expr;) or empty statement (;).
 Node* Parser::expr_stmt()
 {
     Token* stmt_tok = peek();
@@ -301,10 +274,8 @@ Node* Parser::expr_stmt()
     expect(";");
     return node;
 }
-//=================================== End of Statement parsing ===================================
 
-//=================================== Expression parsing — assignment and top level ===================================
-// Parse assignment (right-associative); also parses equality and below.
+// --- Expression: assign is top level (right-associative =), then equality, relational, add, mul, unary, primary ---
 Node* Parser::assign()
 {
     Node* node = equality();
@@ -318,15 +289,11 @@ Node* Parser::assign()
     return node;
 }
 
-// Top-level expression entry; currently just delegates to assign (lowest precedence).
 Node* Parser::expr()
 {
     return assign();
 }
-//=================================== End of Expression parsing — assignment and top level ===================================
 
-//=================================== Expression parsing — equality and relational ===================================
-// Parse == and != (equality operators).
 Node* Parser::equality()
 {
     Node* node = relational();
@@ -380,10 +347,7 @@ Node* Parser::relational()
         return node;
     }
 }
-//=================================== End of Expression parsing — equality and relational ===================================
 
-//=================================== Expression parsing — additive ===================================
-// Parse + and - (additive operators); uses typed new_add/new_sub for pointer arithmetic.
 Node* Parser::add() {
     Node* node = mul();
 
@@ -403,10 +367,7 @@ Node* Parser::add() {
         return node;
     }
 }
-//=================================== End of Expression parsing — additive ===================================
 
-//=================================== Expression parsing — multiplicative ===================================
-// Parse * and / (multiplicative operators).
 Node* Parser::mul()
 {
     Node* node = unary();
@@ -426,10 +387,8 @@ Node* Parser::mul()
         return node;
     }
 }
-//=================================== End of Expression parsing — multiplicative ===================================
 
-//=================================== Expression parsing — unary and primary ===================================
-// Parse primary expression: (expr), identifier, or number.
+// Primary: ( expr ) | ident [ ( args ) ] | num. Ident + "(" -> funcall; else find_var and make ND_VAR.
 Node* Parser::primary()
 {
     if (consume("(")) {
@@ -438,12 +397,8 @@ Node* Parser::primary()
         return node;
     }
     if (peek()->get_kind() == TokenKind::IDENT) {
-        // Function call: ident followed by "(" (check next token, not current)
         if (is_followed_by("("))
-        {
             return funcall();
-        }
-        //Variable name processing
         Token* ident_tok = peek();
         Obj* var = find_var(peek());
         if (!var)
@@ -461,7 +416,7 @@ Node* Parser::primary()
     diagnostic::error_at(peek()->get_content(), "expected an expression");
 }
 
-// Parse unary: +, -, *, & applied to unary, or primary.
+// Unary: + - * & (then unary) or primary.
 Node* Parser::unary()
 {
     if (consume("+"))
@@ -489,22 +444,13 @@ Node* Parser::unary()
     }
     return primary();
 }
-//=================================== End of Expression parsing — unary and primary ===================================
 
-//=================================== Expression parsing — function call ===================================
+// Function call: ident ( [ assign ( "," assign )* ] ). Args stored as list via set_nextstmt.
 Node* Parser::funcall()
 {
-    Token* func_name_tok=peek();
+    Token* func_name_tok = peek();
     advance();
     expect("(");
-    // Zero-arg call: accept () or (void)
-    // if (consume(")"))
-    //     { /* no args */ }
-    // else if (consume("void"))
-    //     expect(")");
-    // else
-    //     diagnostic::error_at(peek()->get_content(), "expected ) or void");
-
     Node head(NodeKind::ND_EXPR_STMT);
     Node* cur=&head;
     while(!check(")"))
@@ -518,21 +464,20 @@ Node* Parser::funcall()
         cur=arg;
     }
     expect(")");
-    
-    Node* node=make_func_call(NodeKind::ND_FUNCALL,func_name_tok,func_name_tok->get_content());
+    Node* node = make_func_call(NodeKind::ND_FUNCALL, func_name_tok, func_name_tok->get_content());
     node->set_args(head.get_nextstmt());
     return node;
 }
 
+// One function: declspec + declarator (name + optional () for function type), then { compound_stmt }.
+// locals reset so this function's declarations build a fresh list; that list is stored in the Function.
 Function* Parser::function()
 {
-    Type* basety = declspec(); // expect(int)
-
-    auto[ty,name_tok]=declarator(basety);
-    locals=nullptr;
+    Type* basety = declspec();
+    auto [ty, name_tok] = declarator(basety);
+    locals = nullptr;
     expect("{");
-    Node* body=compound_stmt();
-
-    Function* fn = ctx_.make_function(body,locals,name_tok->get_content());
+    Node* body = compound_stmt();
+    Function* fn = ctx_.make_function(body, locals, name_tok->get_content());
     return fn;
 }

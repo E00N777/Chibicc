@@ -7,13 +7,9 @@ class Token;
 
 namespace diagnostic {
 
-// Report error at given token/location (no line/column), then exit.
+// Print message (and optional location), then exit. No line/column info yet.
 [[noreturn]] void error_at(std::string_view loc, const std::string& msg);
-
-// Report error at token location, then exit.
 [[noreturn]] void error_tok(Token* tok, const std::string& msg);
-
-// Fatal error without source location.
 [[noreturn]] void fatal(const std::string& msg);
 
 } // namespace diagnostic

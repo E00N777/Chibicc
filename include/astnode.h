@@ -2,13 +2,17 @@
 #include <string>
 #include <string_view>
 
-
 // Forward declarations.
 class Node;
 class Token;
 class Type;
 
-// Local variable: name and stack offset from RBP.
+// --- AST and symbol representation ---
+// Obj: one local variable (name, type, stack offset). Linked via next_ per function.
+// Function: one function (body AST, locals list, name). Linked via next_ for the program.
+// Node: AST node; meaning of lhs/rhs/body/condition/etc. depends on NodeKind.
+
+// Local variable: name, type, and stack offset from RBP (filled during codegen).
 class Obj {
 public:
     explicit Obj(std::string name, Obj* next = nullptr)
@@ -28,10 +32,10 @@ private:
     Obj* next_;
     std::string name_;
     int offset_;
-    Type* ty_ = nullptr;  // Type of this variable
+    Type* ty_ = nullptr;
 };
 
-// Function: body statements and list of local variables.
+// Function: body (first stmt of compound), locals list, and name. next_ chains all functions.
 class Function {
 public:
     Function() = default;
@@ -59,29 +63,12 @@ private:
     std::string_view name_;
 };
 
-// Node for AST
-enum class NodeKind
-{
-    ND_ADD,       // +
-    ND_SUB,       // -
-    ND_MUL,       // *
-    ND_DIV,       // /
-    ND_NUM,       // integer
-    ND_NEG,       // unary minus
-    ND_EQ,        // ==
-    ND_NE,        // !=
-    ND_LT,        // <
-    ND_LE,        // <=
-    ND_EXPR_STMT, // expression statement
-    ND_ASSIGN,    // assignment
-    ND_VAR,       // variable (uses var pointer)
-    ND_RETURN,    // return
-    ND_BLOCK,     // block
-    ND_IF,        // if
-    ND_FOR,       // for and while statement
-    ND_ADDR,      // address of
-    ND_DEREF,     // dereference
-    ND_FUNCALL,   // function call
+// AST node kind. Which of lhs/rhs/body/condition/then/els/init/inc/var/args is valid depends on kind.
+enum class NodeKind {
+    ND_ADD, ND_SUB, ND_MUL, ND_DIV, ND_NUM, ND_NEG,
+    ND_EQ, ND_NE, ND_LT, ND_LE,
+    ND_EXPR_STMT, ND_ASSIGN, ND_VAR, ND_RETURN, ND_BLOCK,
+    ND_IF, ND_FOR, ND_ADDR, ND_DEREF, ND_FUNCALL,
 };
 
 class Node {
@@ -90,22 +77,19 @@ private:
     Node* lhs = nullptr;
     Node* rhs = nullptr;
     Node* next = nullptr;
-     // Representative token for error reporting
-    Token* tok = nullptr; 
-    int val = 0;
-    Obj* var = nullptr;  // used when kind == ND_VAR
-    Node* body = nullptr;
-    //Support for if and for statement
-    Node* condition = nullptr;
+    Token* tok = nullptr;   // For error reporting.
+    int val = 0;            // ND_NUM only.
+    Obj* var = nullptr;    // ND_VAR only.
+    Node* body = nullptr;   // ND_BLOCK, ND_EXPR_STMT (as stmt list), etc.
+    Node* condition = nullptr;  // ND_IF, ND_FOR.
     Node* then = nullptr;
     Node* els = nullptr;
     Node* init = nullptr;
     Node* inc = nullptr;
 
-    Type* ty = nullptr;  // Type of this expression, e.g. int or pointer to int
-
-    std::string_view func_name; // used when kind == ND_FUNCALL for function name
-    Node* args = nullptr; // used for function call arguments (X86-64 calling convention)
+    Type* ty = nullptr;         // Filled by add_type() (type.cpp); used by codegen and parser (+/-).
+    std::string_view func_name; // ND_FUNCALL: callee name.
+    Node* args = nullptr;       // ND_FUNCALL: first argument (chain via get_nextstmt()).
 
 public:
     Node(NodeKind kind) : kind(kind) {}
@@ -141,7 +125,6 @@ public:
     void set_inc(Node* i) { inc = i; }
     Node* get_inc() const { return inc; }
 
-    //Function call support
     void set_func_name(std::string_view name) { func_name = name; }
     std::string_view get_func_name() const { return func_name; }
     Node* get_args() const { return args; }

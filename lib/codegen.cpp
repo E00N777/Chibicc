@@ -3,7 +3,7 @@
 #include "diagnostic.h"
 #include <iostream>
 
-// Round up n to the nearest multiple of align. E.g. align_to(5, 8) => 8, align_to(11, 8) => 16.
+// Round up n to the nearest multiple of align (e.g. 5,8 -> 8; 11,8 -> 16).
 int CodeGen::align_to(int n, int align) {
     return (n + align - 1) / align * align;
 }
@@ -17,8 +17,7 @@ void CodeGen::pop(const char* reg) {
     depth--;
 }
 
-// Compute the absolute address of a given node.
-// It's an error if the node does not reside in memory.
+// Emit code to leave the address of the node in %rax. Valid for ND_VAR, ND_DEREF, ND_ADDR.
 void CodeGen::gen_addr(Node* node) {
     switch(node->get_nodekind())
     {
@@ -32,12 +31,11 @@ void CodeGen::gen_addr(Node* node) {
             gen_addr(node->get_lhs());
             return;
         default:
-            diagnostic::error_tok(node->get_tok(), "There must be an lvalue in address of or dereference!");
-
+            diagnostic::error_tok(node->get_tok(), "lvalue required for address-of or dereference");
     }
 }
 
-// Assign offsets to local variables.
+// Set each function's local var offsets and stack_size (16-byte aligned).
 void CodeGen::assign_lvar_offsets(Function* prog) {
     for (Function* fn = prog; fn; fn = fn->get_next()) {
         int offset = 0;
@@ -90,8 +88,7 @@ void CodeGen::gen_expr(Node* node)
         {
             pop(args_regs[i].data());
         }
-        std::cout << "xor %rax, %rax\n";
-        std::cout << "call " << node->get_func_name() << "\n";
+        std::cout << "    call " << node->get_func_name() << "\n";
         return;
     }
 
@@ -130,7 +127,7 @@ void CodeGen::gen_expr(Node* node)
             std::cout << "    setle %al\n";
 
         
-        std::cout << "    movzbq %al, %rax\n";  //movzbl will be better
+        std::cout << "    movzbq %al, %rax\n";
         break;
     default:
         diagnostic::error_tok(node->get_tok(), "invalid expression");
@@ -144,7 +141,7 @@ void CodeGen::gen_stmt(Node* node) {
             int seq=gen_label_seq();
             gen_expr(node->get_condition());
             std::cout << "    cmp $0, %rax\n";
-            std::cout << "     je .L.else" << seq << "\n";
+            std::cout << "    je .L.else" << seq << "\n";
             gen_stmt(node->get_then());
             std::cout << "    jmp .L.end" << seq << "\n";
             std::cout << ".L.else" << seq << ":\n";
@@ -200,7 +197,6 @@ void CodeGen::generate(Function* prog) {
         current_fn_ = fn;
         std::cout << "    .globl " << fn->get_name() << "\n";
         std::cout << fn->get_name() << ":\n";
-        // Prologue
         std::cout << "    push %rbp\n";
         std::cout << "    mov %rsp, %rbp\n";
         std::cout << "    sub $" << fn->get_stack_size() << ", %rsp\n";
