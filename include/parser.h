@@ -44,6 +44,9 @@ private:
     Type* declspec();
     std::pair<Type*,Token*> declarator(Type* basety);
     Node* declaration();
+
+    //=================================== Function==================================================================
+    Function* function();
     
 
 public:

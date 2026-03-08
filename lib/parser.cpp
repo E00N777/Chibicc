@@ -8,11 +8,16 @@
 
 // Entry point: parse the whole program (expects "{" then compound_stmt); returns the function with body and locals.
 Function* Parser::parse() {
-    expect("{");
-    Function* prog = ctx_.make_function();
-    prog->set_body(compound_stmt());
-    prog->set_locals(locals);
-    return prog;
+    Function head={};
+    Function* cur=&head;
+    while(peek()->get_kind() != TokenKind::EOF_TK)
+    {
+        Function* fn=function();
+        cur->set_next(fn);
+        cur=cur->get_next();
+    }
+    return head.get_next();
+    
 }
 
 //=================================== Variable and local symbol management ===================================
@@ -136,6 +141,11 @@ std::pair<Type*,Token*> Parser::declarator(Type* basety)
         diagnostic::error_at(peek()->get_content(), "expected an identifier");
     Token* ident_tok=peek();
     advance();
+    if(consume("("))
+    {
+        expect(")");
+        ty = ctx_.make_func_type(ty);
+    }
     return {ty,ident_tok};
 }
 
@@ -512,4 +522,17 @@ Node* Parser::funcall()
     Node* node=make_func_call(NodeKind::ND_FUNCALL,func_name_tok,func_name_tok->get_content());
     node->set_args(head.get_nextstmt());
     return node;
+}
+
+Function* Parser::function()
+{
+    Type* basety = declspec(); // expect(int)
+
+    auto[ty,name_tok]=declarator(basety);
+    locals=nullptr;
+    expect("{");
+    Node* body=compound_stmt();
+
+    Function* fn = ctx_.make_function(body,locals,name_tok->get_content());
+    return fn;
 }

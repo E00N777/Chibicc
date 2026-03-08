@@ -13,6 +13,7 @@ public:
 private:
     int depth = 0;
     int label_seq = 0;
+    Function* current_fn_ = nullptr;
     void push();
     void pop(const char* reg);
     void gen_addr(Node* node);

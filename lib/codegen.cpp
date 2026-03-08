@@ -39,12 +39,14 @@ void CodeGen::gen_addr(Node* node) {
 
 // Assign offsets to local variables.
 void CodeGen::assign_lvar_offsets(Function* prog) {
-    int offset = 0;
-    for (Obj* var = prog->get_locals(); var; var = var->get_next()) {
-        offset += 8;
-        var->set_offset(-offset);
+    for (Function* fn = prog; fn; fn = fn->get_next()) {
+        int offset = 0;
+        for (Obj* var = fn->get_locals(); var; var = var->get_next()) {
+            offset += 8;
+            var->set_offset(-offset);
+        }
+        fn->set_stack_size(align_to(offset, 16));
     }
-    prog->set_stack_size(align_to(offset, 16));
 }
 
 void CodeGen::gen_expr(Node* node)
@@ -179,7 +181,7 @@ void CodeGen::gen_stmt(Node* node) {
             return;
         case NodeKind::ND_RETURN:
             gen_expr(node->get_lhs());
-            std::cout << "    jmp .L.return\n";
+            std::cout << "    jmp .L.return."<<current_fn_->get_name()<<"\n";
             return;
         case NodeKind::ND_BLOCK:
             for (Node* n = node->get_body(); n; n = n->get_nextstmt()) {
@@ -194,21 +196,24 @@ void CodeGen::gen_stmt(Node* node) {
 
 void CodeGen::generate(Function* prog) {
     assign_lvar_offsets(prog);
+    for (Function* fn = prog; fn; fn = fn->get_next()) {
+        current_fn_ = fn;
+        std::cout << "    .globl " << fn->get_name() << "\n";
+        std::cout << fn->get_name() << ":\n";
+        // Prologue
+        std::cout << "    push %rbp\n";
+        std::cout << "    mov %rsp, %rbp\n";
+        std::cout << "    sub $" << fn->get_stack_size() << ", %rsp\n";
 
-    std::cout << "    .globl main\n";
-    std::cout << "main:\n";
-    // Prologue
-    std::cout << "    push %rbp\n";
-    std::cout << "    mov %rsp, %rbp\n";
-    std::cout << "    sub $" << prog->get_stack_size() << ", %rsp\n";
+        for (Node* n = fn->get_body(); n; n = n->get_nextstmt()) {
+            gen_stmt(n);
+            assert(depth == 0);
+        }
 
-    for (Node* n = prog->get_body(); n; n = n->get_nextstmt()) {
-        gen_stmt(n);
-        assert(depth == 0);
+        std::cout << ".L.return." << fn->get_name() << ":\n";
+        std::cout << "    mov %rbp, %rsp\n";
+        std::cout << "    pop %rbp\n";
+        std::cout << "    ret\n";
     }
-
-    std::cout << ".L.return:\n";
-    std::cout << "    mov %rbp, %rsp\n";
-    std::cout << "    pop %rbp\n";
-    std::cout << "    ret\n";
+    
 }

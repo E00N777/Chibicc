@@ -56,6 +56,13 @@ public:
         types_.push_back(std::move(p));
         return raw;
     }
+    Type* make_func_type(Type* return_ty){
+        auto p = std::make_unique<Type>(TypeKind::TY_FUNC,return_ty);
+        Type* raw = p.get();
+        types_.push_back(std::move(p));
+        return raw;
+    }
+
 
 private:
     std::vector<std::unique_ptr<Token>> tokens_;

@@ -36,16 +36,27 @@ class Function {
 public:
     Function() = default;
 
+    Function(Node* body, Obj* locals, std::string_view name)
+    : body_(body), locals_(locals), stack_size_(0), next_(nullptr), name_(name) {}
+
     Node* get_body() const { return body_; }
     void set_body(Node* body) { body_ = body; }
     Obj* get_locals() const { return locals_; }
     void set_locals(Obj* locals) { locals_ = locals; }
     int get_stack_size() const { return stack_size_; }
     void set_stack_size(int size) { stack_size_ = size; }
+    
+    Function* get_next() const { return next_; }
+    void set_next(Function* fn) { next_ = fn; }
+    std::string_view get_name() const { return name_; }
+    void set_name(std::string_view n) { name_ = n; }
+
 private:
     Node* body_ = nullptr;
     Obj* locals_ = nullptr;
     int stack_size_ = 0;
+    Function* next_=nullptr;
+    std::string_view name_;
 };
 
 // Node for AST
