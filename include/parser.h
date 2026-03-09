@@ -43,9 +43,12 @@ private:
     Node* new_add(Node* lhs, Node* rhs, Token* tok);
     Node* new_sub(Node* lhs, Node* rhs, Token* tok);
 
-    // --- Declarations: declspec = "int", declarator = * * ident [ () ] -> (Type*, name Token) ---
+    // --- Declarations: declspec = "int", declarator parses pointers plus an optional
+    // function parameter list and returns the full declarator shape. ---
     Type* declspec();
-    std::pair<Type*, Token*> declarator(Type* basety);
+    DeclaratorResult declarator(Type* basety);
+    std::vector<ParsedParam> parse_function_params();
+    std::vector<Obj*> create_param_locals(const std::vector<ParsedParam>& params);
     Node* declaration();
 
     // --- Top-level: one function definition (declspec + declarator + "{" compound_stmt "}") ---

@@ -18,6 +18,7 @@ private:
     Function* current_fn_ = nullptr;  // Used for ND_RETURN jump target (.L.return.<name>).
     void push();
     void pop(const char* reg);
+    void store_function_params(Function* fn);
     void gen_addr(Node* node);
     void gen_expr(Node* node);
     void gen_stmt(Node* node);

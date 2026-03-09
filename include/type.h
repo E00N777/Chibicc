@@ -1,4 +1,6 @@
 #pragma once
+#include <utility>
+#include <vector>
 
 class Node;
 class ASTContext;
@@ -20,10 +22,17 @@ public:
     Type* get_base() const { return base_; }
     void set_base(Type* base) { base_ = base; }
 
+    // Function types keep their parameter types in declaration order.
+    // This is useful for future type checking and keeps the signature model
+    // separate from the concrete Obj instances stored on Function.
+    const std::vector<Type*>& get_param_types() const { return param_types_; }
+    void set_param_types(std::vector<Type*> params) { param_types_ = std::move(params); }
+
 private:
     TypeKind kind_;
     Type* base_ = nullptr;
     Type* return_ty_ = nullptr;
+    std::vector<Type*> param_types_;
 
     Type(const Type&) = delete;
     Type& operator=(const Type&) = delete;

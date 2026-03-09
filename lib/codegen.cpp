@@ -17,6 +17,19 @@ void CodeGen::pop(const char* reg) {
     depth--;
 }
 
+// The SysV ABI passes the first six integer arguments in registers. We spill
+// them into the stack slots assigned to the function's parameter variables so
+// the rest of the compiler can treat parameters exactly like ordinary locals.
+void CodeGen::store_function_params(Function* fn) {
+    if (fn->get_params().size() > args_regs.size())
+        diagnostic::error_at(fn->get_name(), "too many function parameters");
+
+    for (std::size_t i = 0; i < fn->get_params().size(); ++i) {
+        Obj* param = fn->get_params()[i];
+        std::cout << "    mov " << args_regs[i] << ", " << param->get_offset() << "(%rbp)\n";
+    }
+}
+
 // Emit code to leave the address of the node in %rax. Valid for ND_VAR, ND_DEREF, ND_ADDR.
 void CodeGen::gen_addr(Node* node) {
     switch(node->get_nodekind())
@@ -200,6 +213,7 @@ void CodeGen::generate(Function* prog) {
         std::cout << "    push %rbp\n";
         std::cout << "    mov %rsp, %rbp\n";
         std::cout << "    sub $" << fn->get_stack_size() << ", %rsp\n";
+        store_function_params(fn);
 
         for (Node* n = fn->get_body(); n; n = n->get_nextstmt()) {
             gen_stmt(n);

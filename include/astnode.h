@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <string_view>
+#include <vector>
 
 // Forward declarations.
 class Node;
@@ -36,6 +37,8 @@ private:
 };
 
 // Function: body (first stmt of compound), locals list, and name. next_ chains all functions.
+// params_ stores the parameter objects in source order so codegen can map them to ABI
+// argument registers without depending on the reversed locals linked list order.
 class Function {
 public:
     Function() = default;
@@ -55,12 +58,17 @@ public:
     std::string_view get_name() const { return name_; }
     void set_name(std::string_view n) { name_ = n; }
 
+    const std::vector<Obj*>& get_params() const { return params_; }
+    void set_params(std::vector<Obj*> params) { params_ = std::move(params); }
+
 private:
     Node* body_ = nullptr;
     Obj* locals_ = nullptr;
     int stack_size_ = 0;
     Function* next_=nullptr;
     std::string_view name_;
+
+    std::vector<Obj*> params_;
 };
 
 // AST node kind. Which of lhs/rhs/body/condition/then/els/init/inc/var/args is valid depends on kind.
@@ -69,6 +77,20 @@ enum class NodeKind {
     ND_EQ, ND_NE, ND_LT, ND_LE,
     ND_EXPR_STMT, ND_ASSIGN, ND_VAR, ND_RETURN, ND_BLOCK,
     ND_IF, ND_FOR, ND_ADDR, ND_DEREF, ND_FUNCALL,
+};
+// ParsedParam describes one parameter in a function declarator.
+// It does not own the token or the type object; both are managed by ASTContext.
+struct ParsedParam {
+    Token* name_tok{};
+    Type* type{};
+};
+
+// DeclaratorResult carries everything parsed from a declarator:
+// the completed type, the declared identifier, and any function parameters.
+struct DeclaratorResult {
+    Type* type{};
+    Token* name_tok{};
+    std::vector<ParsedParam> params;
 };
 
 class Node {

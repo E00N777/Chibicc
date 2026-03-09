@@ -4,7 +4,7 @@
 #include "diagnostic.h"
 #include "context.h"
 #include "type.h"
-#include <utility>
+#include <vector>
 
 // --- Program: list of function definitions. Types come from declspec/declarator; Obj from declaration(). ---
 Function* Parser::parse() {
@@ -117,8 +117,44 @@ Type* Parser::declspec()
     return ctx_.get_int_type();
 }
 
-// Declarator: * * ident [ () ]. Returns (full type, name token). () suffix makes a function type.
-std::pair<Type*, Token*> Parser::declarator(Type* basety)
+// Parse a function parameter list after the opening '('.
+// Each parameter is parsed using the same declarator logic as local variables so
+// pointer parameters naturally work once pointer declarators are supported.
+std::vector<ParsedParam> Parser::parse_function_params() {
+    std::vector<ParsedParam> params;
+
+    if (check(")"))
+        return params;
+
+    while (true) {
+        Type* param_basety = declspec();
+        DeclaratorResult param_decl = declarator(param_basety);
+        params.push_back({param_decl.name_tok, param_decl.type});
+
+        if (!consume(","))
+            return params;
+    }
+}
+
+// Parameters must be visible as local variables inside the function body.
+// Because new_lvar prepends to the locals list, we create them in reverse order
+// so the final linked list preserves the original source order.
+std::vector<Obj*> Parser::create_param_locals(const std::vector<ParsedParam>& params) {
+    std::vector<Obj*> param_objs(params.size(), nullptr);
+
+    for (std::size_t i = params.size(); i > 0; --i) {
+        const ParsedParam& param = params[i - 1];
+        Obj* var = new_lvar(std::string(param.name_tok->get_content()), param.type);
+        param_objs[i - 1] = var;
+    }
+
+    return param_objs;
+}
+
+// Declarator: * * ident [ "(" func-params? ")" ].
+// The returned structure includes the fully built type, the declared name token,
+// and the parsed parameter metadata when the declarator is a function.
+DeclaratorResult Parser::declarator(Type* basety)
 {
     Type* ty = basety;
     while (consume("*"))
@@ -129,10 +165,19 @@ std::pair<Type*, Token*> Parser::declarator(Type* basety)
     Token* ident_tok=peek();
     advance();
     if (consume("(")) {
+        std::vector<ParsedParam> params = parse_function_params();
         expect(")");
-        ty = ctx_.make_func_type(ty);
+
+        std::vector<Type*> param_types;
+        param_types.reserve(params.size());
+        for (const ParsedParam& param : params)
+            param_types.push_back(param.type);
+
+        ty = ctx_.make_func_type(ty, std::move(param_types));
+        return {ty, ident_tok, std::move(params)};
     }
-    return {ty, ident_tok};
+
+    return {ty, ident_tok, {}};
 }
 
 // int a, b = 3; : declspec once, then per-declarator type + new_lvar; optional init as assign stmt.
@@ -151,7 +196,9 @@ Node* Parser::declaration()
         }
         first=false;
         
-        auto [ty,ident_tok]=declarator(basety);
+        DeclaratorResult decl = declarator(basety);
+        Type* ty = decl.type;
+        Token* ident_tok = decl.name_tok;
         std::string name(ident_tok->get_content());
         Obj* var=new_lvar(name,ty);
 
@@ -473,11 +520,19 @@ Node* Parser::funcall()
 // locals reset so this function's declarations build a fresh list; that list is stored in the Function.
 Function* Parser::function()
 {
+    // Reset the local symbol list before starting a new function so parameters
+    // and local declarations for different functions never mix together.
     Type* basety = declspec();
-    auto [ty, name_tok] = declarator(basety);
+    DeclaratorResult decl = declarator(basety);
     locals = nullptr;
+
+    // Function parameters behave like predeclared local variables whose initial
+    // values come from the calling convention rather than from an assignment in
+    // the source program.
+    std::vector<Obj*> params = create_param_locals(decl.params);
     expect("{");
     Node* body = compound_stmt();
-    Function* fn = ctx_.make_function(body, locals, name_tok->get_content());
+    Function* fn = ctx_.make_function(body, locals, decl.name_tok->get_content());
+    fn->set_params(std::move(params));
     return fn;
 }

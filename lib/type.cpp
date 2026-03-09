@@ -25,6 +25,8 @@ void add_type(Node* node, ASTContext& ctx) {
     add_type(node->get_inc(), ctx);
     for (Node* n = node->get_body(); n; n = n->get_nextstmt())
         add_type(n, ctx);
+    for (Node* arg = node->get_args(); arg; arg = arg->get_nextstmt())
+        add_type(arg, ctx);
    
     switch (node->get_nodekind()) {
     case NodeKind::ND_ADD:

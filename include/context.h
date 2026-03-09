@@ -58,8 +58,9 @@ public:
         types_.push_back(std::move(p));
         return raw;
     }
-    Type* make_func_type(Type* return_ty){
-        auto p = std::make_unique<Type>(TypeKind::TY_FUNC,return_ty);
+    Type* make_func_type(Type* return_ty, std::vector<Type*> params = {}) {
+        auto p = std::make_unique<Type>(TypeKind::TY_FUNC, return_ty);
+        p->set_param_types(std::move(params));
         Type* raw = p.get();
         types_.push_back(std::move(p));
         return raw;
