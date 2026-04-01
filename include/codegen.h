@@ -1,4 +1,5 @@
 #include "astnode.h"
+#include "type.h"
 #include <array>
 #include <cassert>
 #include <string_view>
@@ -24,4 +25,5 @@ private:
     void gen_stmt(Node* node);
     static int align_to(int n, int align);
     void assign_lvar_offsets(Function* prog);
+    void load(Type* ty);
 };

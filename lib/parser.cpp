@@ -117,6 +117,29 @@ Type* Parser::declspec()
     return ctx_.get_int_type();
 }
 
+Type* Parser::type_suffix(Type* ty, std::vector<ParsedParam>& params)
+{
+    if (consume("(")) {
+        params = parse_function_params();
+        expect(")");
+
+        std::vector<Type*> param_types;
+        param_types.reserve(params.size());
+        for (const ParsedParam& param : params)
+            param_types.push_back(param.type);
+
+        return ctx_.make_func_type(ty, std::move(param_types)); 
+    }
+
+    if (consume("[")) {
+        int len  = peek()->get_number();
+        advance();
+        expect("]");
+        return ctx_.make_array_type(ty, len);
+    }
+    return ty;
+}
+
 // Parse a function parameter list after the opening '('.
 // Each parameter is parsed using the same declarator logic as local variables so
 // pointer parameters naturally work once pointer declarators are supported.
@@ -164,20 +187,11 @@ DeclaratorResult Parser::declarator(Type* basety)
         diagnostic::error_at(peek()->get_content(), "expected an identifier");
     Token* ident_tok=peek();
     advance();
-    if (consume("(")) {
-        std::vector<ParsedParam> params = parse_function_params();
-        expect(")");
 
-        std::vector<Type*> param_types;
-        param_types.reserve(params.size());
-        for (const ParsedParam& param : params)
-            param_types.push_back(param.type);
+    std::vector<ParsedParam> params;
+    ty = type_suffix(ty, params);
 
-        ty = ctx_.make_func_type(ty, std::move(param_types));
-        return {ty, ident_tok, std::move(params)};
-    }
-
-    return {ty, ident_tok, {}};
+    return {ty, ident_tok, std::move(params)};
 }
 
 // int a, b = 3; : declspec once, then per-declarator type + new_lvar; optional init as assign stmt.

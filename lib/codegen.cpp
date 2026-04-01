@@ -8,6 +8,13 @@ int CodeGen::align_to(int n, int align) {
     return (n + align - 1) / align * align;
 }
 
+void CodeGen::load(Type* ty) {
+    if (ty->get_kind() == TypeKind::TY_ARRAY) {
+        return;
+    }
+    std::cout << "    mov (%rax), %rax\n";
+}
+
 void CodeGen::push() {
     std::cout << "    push %rax\n";
     depth++;
@@ -53,7 +60,7 @@ void CodeGen::assign_lvar_offsets(Function* prog) {
     for (Function* fn = prog; fn; fn = fn->get_next()) {
         int offset = 0;
         for (Obj* var = fn->get_locals(); var; var = var->get_next()) {
-            offset += 8;
+            offset += var->get_ty()->get_size();
             var->set_offset(-offset);
         }
         fn->set_stack_size(align_to(offset, 16));
@@ -72,7 +79,7 @@ void CodeGen::gen_expr(Node* node)
         return;
     case NodeKind::ND_VAR:
         gen_addr(node);
-        std::cout << "    mov (%rax), %rax\n";
+        load(node->get_ty());
         return;
     case NodeKind::ND_ASSIGN:
         gen_addr(node->get_lhs());
@@ -86,7 +93,7 @@ void CodeGen::gen_expr(Node* node)
         return;
     case NodeKind::ND_DEREF:
         gen_addr(node);
-        std::cout << "    mov (%rax), %rax\n";
+        load(node->get_ty());
         return;
     case NodeKind::ND_FUNCALL:
         int arg_count = 0;

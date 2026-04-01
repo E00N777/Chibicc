@@ -5,7 +5,7 @@
 class Node;
 class ASTContext;
 
-enum class TypeKind { TY_INT, TY_PTR, TY_FUNC };
+enum class TypeKind { TY_INT, TY_PTR, TY_FUNC, TY_ARRAY };
 
 // Type: int, pointer-to-T, or function-returning-T. Created in parser (declspec/declarator)
 // and in context (get_int_type, make_ptr_type, make_func_type). add_type() in type.cpp
@@ -21,6 +21,10 @@ public:
     TypeKind get_kind() const { return kind_; }
     Type* get_base() const { return base_; }
     void set_base(Type* base) { base_ = base; }
+    int get_size() const { return size_; }
+    void set_size(int size) { size_ = size; }
+    int get_array_len() const { return array_len_; }
+    void set_array_len(int len) { array_len_ = len; }
 
     // Function types keep their parameter types in declaration order.
     // This is useful for future type checking and keeps the signature model
@@ -30,6 +34,8 @@ public:
 
 private:
     TypeKind kind_;
+    int size_;  //size of value;
+    int array_len_; //length of array;
     Type* base_ = nullptr;
     Type* return_ty_ = nullptr;
     std::vector<Type*> param_types_;

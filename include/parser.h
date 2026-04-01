@@ -47,6 +47,7 @@ private:
     // function parameter list and returns the full declarator shape. ---
     Type* declspec();
     DeclaratorResult declarator(Type* basety);
+    Type* type_suffix(Type* ty, std::vector<ParsedParam>& params);
     std::vector<ParsedParam> parse_function_params();
     std::vector<Obj*> create_param_locals(const std::vector<ParsedParam>& params);
     Node* declaration();

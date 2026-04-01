@@ -34,9 +34,15 @@ void add_type(Node* node, ASTContext& ctx) {
     case NodeKind::ND_MUL:
     case NodeKind::ND_DIV:
     case NodeKind::ND_NEG:
-    case NodeKind::ND_ASSIGN:
         node->set_ty(node->get_lhs()->get_ty());
         return;
+    case NodeKind::ND_ASSIGN:{
+        Type* lhs_ty = node->get_lhs()->get_ty();
+        if (lhs_ty && lhs_ty->get_kind() == TypeKind::TY_ARRAY)
+            diagnostic::error_tok(node->get_tok(), "invalid array assignment");
+        node->set_ty(lhs_ty);
+        return;
+    }
     case NodeKind::ND_EQ:
     case NodeKind::ND_NE:
     case NodeKind::ND_LT:
@@ -47,12 +53,17 @@ void add_type(Node* node, ASTContext& ctx) {
     case NodeKind::ND_VAR:
         node->set_ty(node->get_var()->get_ty());
         return;
-    case NodeKind::ND_ADDR:
-        node->set_ty(ctx.make_ptr_type(node->get_lhs()->get_ty()));
+    case NodeKind::ND_ADDR: {
+        Type* lhs_ty = node->get_lhs()->get_ty();
+        if (lhs_ty && lhs_ty->get_kind() == TypeKind::TY_ARRAY)
+            node->set_ty(ctx.make_ptr_type(lhs_ty->get_base()));
+        else
+            node->set_ty(ctx.make_ptr_type(lhs_ty));
         return;
+    }      
     case NodeKind::ND_DEREF: {
         Type* lhs_ty = node->get_lhs()->get_ty();
-        if (!lhs_ty || lhs_ty->get_kind() != TypeKind::TY_PTR)
+        if (!lhs_ty || !lhs_ty->get_base())
             diagnostic::error_tok(node->get_tok(), "invalid pointer dereference");
         else
             node->set_ty(lhs_ty->get_base());

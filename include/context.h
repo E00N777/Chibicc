@@ -46,6 +46,7 @@ public:
     Type* get_int_type() {
         if (!ty_int_) {
             auto p = std::make_unique<Type>(TypeKind::TY_INT);
+            p->set_size(8);
             ty_int_ = p.get();
             types_.push_back(std::move(p));
         }
@@ -55,12 +56,22 @@ public:
     Type* make_ptr_type(Type* base) {
         auto p = std::make_unique<Type>(TypeKind::TY_PTR, base);
         Type* raw = p.get();
+        p->set_size(8);
         types_.push_back(std::move(p));
         return raw;
     }
     Type* make_func_type(Type* return_ty, std::vector<Type*> params = {}) {
         auto p = std::make_unique<Type>(TypeKind::TY_FUNC, return_ty);
         p->set_param_types(std::move(params));
+        Type* raw = p.get();
+        types_.push_back(std::move(p));
+        return raw;
+    }
+    Type* make_array_type(Type* base, int len) {
+        auto p = std::make_unique<Type>(TypeKind::TY_ARRAY);
+        p->set_base(base);
+        p->set_size(base->get_size() * len);
+        p->set_array_len(len);
         Type* raw = p.get();
         types_.push_back(std::move(p));
         return raw;
