@@ -80,7 +80,8 @@ Node* Parser::new_add(Node* lhs, Node* rhs, Token* tok) {
 
     if (!lhs->get_ty()->get_base() && rhs->get_ty()->get_base())
         std::swap(lhs, rhs);
-    rhs = new_binary(NodeKind::ND_MUL, rhs, new_num(8, tok), tok);
+    int scale = lhs->get_ty()->get_base()->get_size();
+    rhs = new_binary(NodeKind::ND_MUL, rhs, new_num(scale, tok), tok);
     return new_binary(NodeKind::ND_ADD, lhs, rhs, tok);
 }
 
@@ -93,8 +94,10 @@ Node* Parser::new_sub(Node* lhs, Node* rhs, Token* tok) {
     if (is_integer(lhs->get_ty(), ctx_) && is_integer(rhs->get_ty(), ctx_))
         return new_binary(NodeKind::ND_SUB, lhs, rhs, tok);
 
+    int scale = lhs->get_ty()->get_base()->get_size();
+
     if (lhs->get_ty()->get_base() && is_integer(rhs->get_ty(), ctx_)) {
-        rhs = new_binary(NodeKind::ND_MUL, rhs, new_num(8, tok), tok);
+        rhs = new_binary(NodeKind::ND_MUL, rhs, new_num(scale, tok), tok);
         add_type(rhs, ctx_);
         Node* node = new_binary(NodeKind::ND_SUB, lhs, rhs, tok);
         node->set_ty(lhs->get_ty());
@@ -104,7 +107,7 @@ Node* Parser::new_sub(Node* lhs, Node* rhs, Token* tok) {
     if (lhs->get_ty()->get_base() && rhs->get_ty()->get_base()) {
         Node* node = new_binary(NodeKind::ND_SUB, lhs, rhs, tok);
         node->set_ty(get_ty_int( ctx_));
-        return new_binary(NodeKind::ND_DIV, node, new_num(8, tok), tok);
+        return new_binary(NodeKind::ND_DIV, node, new_num(scale, tok), tok);
     }
 
     diagnostic::error_tok(tok, "invalid operands");
@@ -135,6 +138,7 @@ Type* Parser::type_suffix(Type* ty, std::vector<ParsedParam>& params)
         int len  = peek()->get_number();
         advance();
         expect("]");
+        ty = type_suffix(ty, params);
         return ctx_.make_array_type(ty, len);
     }
     return ty;

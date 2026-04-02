@@ -92,6 +92,5 @@ public:
         Token* next = current_ ? current_->get_next() : nullptr;
         return next && Tkequal(next, str);
     }
-
     void advance() { current_ = current_->get_next(); }
 };
