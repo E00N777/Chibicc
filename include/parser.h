@@ -24,6 +24,7 @@ private:
     Node* funcall();       // ident "(" [ assign ( "," assign )* ] ")"
     Node* mul();           // * /
     Node* expr();
+    Node* postfix();       // [ ]
     Node* unary();         // + - * &
     Node* equality();      // == !=
     Node* relational();    // >= > <= <

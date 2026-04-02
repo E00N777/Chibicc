@@ -481,7 +481,25 @@ Node* Parser::primary()
     diagnostic::error_at(peek()->get_content(), "expected an expression");
 }
 
-// Unary: + - * & (then unary) or primary.
+// Postfix: operator [ ]  
+// a[b]  ==  *(a + b)
+Node* Parser::postfix() {
+
+    Node* node = primary();
+
+    while(check("[")) {
+        Token* bracket_tok = peek();
+        consume("[");
+        Node* index = expr();
+        expect("]");
+        node = ctx_.make_node(NodeKind::ND_DEREF,new_add(node,index,bracket_tok));
+        node->set_tok(bracket_tok);
+    }
+
+    return node;
+}
+
+// Unary: + - * & (then unary) or postfix.
 Node* Parser::unary()
 {
     if (consume("+"))
@@ -507,7 +525,7 @@ Node* Parser::unary()
         node->set_tok(deref_tok);
         return node;
     }
-    return primary();
+    return postfix();
 }
 
 // Function call: ident ( [ assign ( "," assign )* ] ). Args stored as list via set_nextstmt.
