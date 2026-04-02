@@ -500,6 +500,7 @@ Node* Parser::postfix() {
 }
 
 // Unary: + - * & (then unary) or postfix.
+// sizeof(expr) complier time calculation of the size of the expression
 Node* Parser::unary()
 {
     if (consume("+"))
@@ -524,6 +525,13 @@ Node* Parser::unary()
         Node* node = ctx_.make_node(NodeKind::ND_DEREF, unary());
         node->set_tok(deref_tok);
         return node;
+    }
+    if(check("sizeof")) {
+        Token* sizeof_tok = peek();
+        consume("sizeof");
+        Node* node = unary();
+        add_type(node, ctx_);
+        return new_num(node->get_ty()->get_size(), sizeof_tok);
     }
     return postfix();
 }
