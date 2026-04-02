@@ -1,4 +1,4 @@
-# Chibicc — A Toy C Compiler Rewritten in C++
+# Casting — A Toy C Compiler Rewritten in C++
 
 A from-scratch C compiler targeting x86-64 Linux, rewritten in modern C++ (C++20).
 Based on [Rui Ueyama's chibicc](https://github.com/rui314/chibicc), this project reimplements the compiler with C++ idioms — classes, RAII-based memory management, `std::unique_ptr`, `std::string_view`, and clean separation of concerns.
@@ -23,8 +23,8 @@ This is primarily an educational project: a learning journal for understanding h
 
 ## Project Structure
 
-```
-Chibicc/
+``` 
+Casting/
 ├── Main.cpp                 # Entry point: tokenize → parse → codegen
 ├── CMakeLists.txt           # Build configuration (C++20, static library + executable)
 ├── test.sh                  # Integration test suite (shell-based, 100+ assertions)
@@ -76,7 +76,7 @@ All heap-allocated objects (Token, Node, Obj, Function, Type) are created throug
 Requires a C++20 compiler (GCC 10+ or Clang 12+) and CMake 3.10+.
 
 ```bash
-git clone https://github.com/E00N777/Chibicc.git  && cd Chibicc
+git clone https://github.com/E00N777/Casting.git  && cd Casting
 mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Debug
 cmake --build .
@@ -87,7 +87,7 @@ cmake --build .
 The compiler reads a single C function body from the command line and emits x86-64 assembly to stdout:
 
 ```bash
-./build/Chibicc '{ int x=3; int y=5; return x+y; }' > tmp.s
+./build/Casting '{ int x=3; int y=5; return x+y; }' > tmp.s
 gcc -static -o tmp tmp.s
 ./tmp
 echo $?   # prints 8
@@ -101,7 +101,7 @@ The test suite (`test.sh`) compiles helper C functions with GCC, then runs 100+ 
 cd build
 ctest
 # or run directly:
-../test.sh ./Chibicc
+../test.sh ./Casting
 ```
 
 ## Supported C Subset

@@ -1,5 +1,6 @@
 #executable
 build/
+build-casting/
 
 .cache
 .vscode

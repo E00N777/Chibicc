@@ -1,8 +1,8 @@
-# Chibicc 项目架构与 API 分析
+# Casting 项目架构与 API 分析
 
 ## 1. 项目概览
 
-`Chibicc` 是一个面向学习用途的 C 编译器项目，使用 C++20 重写了经典教学编译器 `chibicc` 的一部分能力。当前工程的目标不是实现完整 C 标准，而是打通一条清晰、可验证的编译主链路：
+`Casting` 是一个面向学习用途的 C 编译器项目，使用 C++20 重写了经典教学编译器 `chibicc` 的一部分能力。当前工程的目标不是实现完整 C 标准，而是打通一条清晰、可验证的编译主链路：
 
 ```text
 源码字符串
@@ -99,7 +99,7 @@ ASTContext ctx
 ### 3.1 顶层目录
 
 ```text
-Chibicc/
+Casting/
 ├── Main.cpp
 ├── CMakeLists.txt
 ├── test.sh
@@ -128,13 +128,13 @@ Chibicc/
 
 `CMakeLists.txt` 采用“静态核心库 + 可执行程序”的结构：
 
-- `cc_core` 静态库包含 `diagnostic.cpp`、`tokenize.cpp`、`parser.cpp`、`codegen.cpp`、`type.cpp`
-- `Chibicc` 可执行文件只包含 `Main.cpp`
+- `casting_core` 静态库包含 `diagnostic.cpp`、`tokenize.cpp`、`parser.cpp`、`codegen.cpp`、`type.cpp`
+- `Casting` 可执行文件只包含 `Main.cpp`
 - `ctest` 通过 `test.sh` 触发集成测试
 
 这种划分虽然简单，但已经体现出明确分层：
 
-- 前后端逻辑集中在 `cc_core`
+- 前后端逻辑集中在 `casting_core`
 - 入口层只做编排，不承载编译细节
 - 测试从最终可执行行为验证全链路
 
@@ -431,7 +431,7 @@ CodeGen 直接把 AST 映射为 x86-64 Linux AT&T 汇编。
 ### 可执行程序
 
 ```bash
-./build/Chibicc 'int main() { return 42; }'
+./build/Casting 'int main() { return 42; }'
 ```
 
 ### 输入契约
@@ -448,7 +448,7 @@ CodeGen 直接把 AST 映射为 x86-64 Linux AT&T 汇编。
 ### 典型使用方式
 
 ```bash
-./build/Chibicc 'int main() { return 42; }' > tmp.s
+./build/Casting 'int main() { return 42; }' > tmp.s
 gcc -static -o tmp tmp.s
 ./tmp
 echo $?

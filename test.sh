@@ -13,7 +13,7 @@ int add6(int a, int b, int c, int d, int e, int f) {
 }
 EOF
 
-CC=${1:-./Chibicc}
+CC=${1:-./Casting}
 
 assert() {
   expected="$1"

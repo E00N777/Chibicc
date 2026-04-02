@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(Chibicc VERSION 0.1.0 LANGUAGES CXX)
+project(Casting VERSION 0.1.0 LANGUAGES CXX)
 
 
 
@@ -14,7 +14,7 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
-add_library(cc_core STATIC
+add_library(casting_core STATIC
     lib/diagnostic.cpp
     lib/tokenize.cpp
     lib/parser.cpp
@@ -22,15 +22,15 @@ add_library(cc_core STATIC
     lib/type.cpp
 )
 
-target_include_directories(cc_core PUBLIC "${CMAKE_SOURCE_DIR}/include")
+target_include_directories(casting_core PUBLIC "${CMAKE_SOURCE_DIR}/include")
 
 
-add_executable(Chibicc
+add_executable(Casting
     Main.cpp
 )
 
-target_link_libraries(Chibicc PRIVATE cc_core)
+target_link_libraries(Casting PRIVATE casting_core)
 enable_testing()
 
 add_test(NAME IntegrationTest 
-         COMMAND ${CMAKE_SOURCE_DIR}/test.sh $<TARGET_FILE:Chibicc>)
+         COMMAND ${CMAKE_SOURCE_DIR}/test.sh $<TARGET_FILE:Casting>)
