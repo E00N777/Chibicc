@@ -28,9 +28,9 @@ public:
         return raw;
     }
 
-    Obj* make_obj(std::string name, Type* ty, Obj* next = nullptr) {
-        auto p = std::make_unique<Obj>(std::move(name), ty, next);
-        Obj* raw = p.get();
+    LocalVariable* make_obj(std::string name, Type* ty, LocalVariable* next = nullptr) {
+        auto p = std::make_unique<LocalVariable>(std::move(name), ty, next);
+        LocalVariable* raw = p.get();
         objs_.push_back(std::move(p));
         return raw;
     }
@@ -89,7 +89,7 @@ public:
 private:
     std::vector<std::unique_ptr<Token>> tokens_;
     std::vector<std::unique_ptr<Node>> nodes_;
-    std::vector<std::unique_ptr<Obj>> objs_;
+    std::vector<std::unique_ptr<LocalVariable>> objs_;
     std::vector<std::unique_ptr<Function>> funcs_;
     std::vector<std::unique_ptr<Type>> types_;
     std::vector<std::unique_ptr<Program>> programs_;

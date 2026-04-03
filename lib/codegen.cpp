@@ -32,7 +32,7 @@ void CodeGen::store_function_params(Function* fn) {
         diagnostic::error_at(fn->get_name(), "too many function parameters");
 
     for (std::size_t i = 0; i < fn->get_params().size(); ++i) {
-        Obj* param = fn->get_params()[i];
+        LocalVariable* param = fn->get_params()[i];
         std::cout << "    mov " << args_regs[i] << ", " << param->get_offset() << "(%rbp)\n";
     }
 }
@@ -59,7 +59,7 @@ void CodeGen::gen_addr(Node* node) {
 void CodeGen::assign_lvar_offsets(Function* prog) {
     for (Function* fn = prog; fn; fn = fn->get_next()) {
         int offset = 0;
-        for (Obj* var = fn->get_locals(); var; var = var->get_next()) {
+        for (LocalVariable* var = fn->get_locals(); var; var = var->get_next()) {
             offset += var->get_ty()->get_size();
             var->set_offset(-offset);
         }

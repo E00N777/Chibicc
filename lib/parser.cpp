@@ -29,22 +29,22 @@ Program* Parser::parse() {
 }
 
 // --- Local symbols: find by name in current function's locals list ---
-Obj* Parser::find_var(Token* tok) {
+LocalVariable* Parser::find_var(Token* tok) {
     std::string_view name = tok->get_content();
-    for (Obj* var = locals; var; var = var->get_next())
+    for (LocalVariable* var = locals; var; var = var->get_next())
         if (var->get_name() == name)
             return var;
     return nullptr;
 }
 
-Node* Parser::new_var_node(Obj* var, Token* tok) {
+Node* Parser::new_var_node(LocalVariable* var, Token* tok) {
     Node* node = ctx_.make_node(NodeKind::ND_VAR, var);
     node->set_tok(tok);
     return node;
 }
 
-Obj* Parser::new_lvar(const std::string& name, Type* ty) {
-    Obj* var = ctx_.make_obj(name, ty, locals);
+LocalVariable* Parser::new_lvar(const std::string& name, Type* ty) {
+    LocalVariable* var = ctx_.make_obj(name, ty, locals);
     locals = var;
     return var;
 }
@@ -174,12 +174,12 @@ std::vector<ParsedParam> Parser::parse_function_params() {
 // Parameters must be visible as local variables inside the function body.
 // Because new_lvar prepends to the locals list, we create them in reverse order
 // so the final linked list preserves the original source order.
-std::vector<Obj*> Parser::create_param_locals(const std::vector<ParsedParam>& params) {
-    std::vector<Obj*> param_objs(params.size(), nullptr);
+std::vector<LocalVariable*> Parser::create_param_locals(const std::vector<ParsedParam>& params) {
+    std::vector<LocalVariable*> param_objs(params.size(), nullptr);
 
     for (std::size_t i = params.size(); i > 0; --i) {
         const ParsedParam& param = params[i - 1];
-        Obj* var = new_lvar(std::string(param.name_tok->get_content()), param.type);
+        LocalVariable* var = new_lvar(std::string(param.name_tok->get_content()), param.type);
         param_objs[i - 1] = var;
     }
 
@@ -226,7 +226,7 @@ Node* Parser::declaration()
         Type* ty = decl.type;
         Token* ident_tok = decl.name_tok;
         std::string name(ident_tok->get_content());
-        Obj* var=new_lvar(name,ty);
+        LocalVariable* var=new_lvar(name,ty);
 
         if(!check("="))
             continue;
@@ -473,7 +473,7 @@ Node* Parser::primary()
         if (is_followed_by("("))
             return funcall();
         Token* ident_tok = peek();
-        Obj* var = find_var(peek());
+        LocalVariable* var = find_var(peek());
         if (!var)
             diagnostic::error_tok(ident_tok, "undefined variable");
         advance();
@@ -581,7 +581,7 @@ Function* Parser::function()
     // Function parameters behave like predeclared local variables whose initial
     // values come from the calling convention rather than from an assignment in
     // the source program.
-    std::vector<Obj*> params = create_param_locals(decl.params);
+    std::vector<LocalVariable*> params = create_param_locals(decl.params);
     expect("{");
     Node* body = compound_stmt();
     Function* fn = ctx_.make_function(body, locals, decl.name_tok->get_content());

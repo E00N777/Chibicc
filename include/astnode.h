@@ -9,6 +9,7 @@ class Token;
 class Type;
 class Function;
 class Program;
+class GlobalVariable;
 
 // Top level program object. It's an abstraction of translate unit in LLVM IR.
 class Program {
@@ -32,15 +33,15 @@ class Program {
 // Node: AST node; meaning of lhs/rhs/body/condition/etc. depends on NodeKind.
 
 // Local variable: name, type, and stack offset from RBP (filled during codegen).
-class Obj {
+class LocalVariable {
 public:
-    explicit Obj(std::string name, Obj* next = nullptr)
+    explicit LocalVariable(std::string name, LocalVariable* next = nullptr)
         : next_(next), name_(std::move(name)), offset_(0) {}
-    explicit Obj(std::string name, Type* ty, Obj* next = nullptr)
+    explicit LocalVariable(std::string name, Type* ty, LocalVariable* next = nullptr)
         : next_(next), name_(std::move(name)), offset_(0), ty_(ty) {}
 
-    Obj* get_next() const { return next_; }
-    void set_next(Obj* next) { next_ = next; }
+    LocalVariable* get_next() const { return next_; }
+    void set_next(LocalVariable* next) { next_ = next; }
     const std::string& get_name() const { return name_; }
     int get_offset() const { return offset_; }
     void set_offset(int offset) { offset_ = offset; }
@@ -48,7 +49,7 @@ public:
     void set_ty(Type* ty) { ty_ = ty; }
 
 private:
-    Obj* next_;
+    LocalVariable* next_;
     std::string name_;
     int offset_;
     Type* ty_ = nullptr;
@@ -61,13 +62,13 @@ class Function {
 public:
     Function() = default;
 
-    Function(Node* body, Obj* locals, std::string_view name)
+    Function(Node* body, LocalVariable* locals, std::string_view name)
     : body_(body), locals_(locals), stack_size_(0), next_(nullptr), name_(name) {}
 
     Node* get_body() const { return body_; }
     void set_body(Node* body) { body_ = body; }
-    Obj* get_locals() const { return locals_; }
-    void set_locals(Obj* locals) { locals_ = locals; }
+    LocalVariable* get_locals() const { return locals_; }
+    void set_locals(LocalVariable* locals) { locals_ = locals; }
     int get_stack_size() const { return stack_size_; }
     void set_stack_size(int size) { stack_size_ = size; }
     
@@ -76,17 +77,17 @@ public:
     std::string_view get_name() const { return name_; }
     void set_name(std::string_view n) { name_ = n; }
 
-    const std::vector<Obj*>& get_params() const { return params_; }
-    void set_params(std::vector<Obj*> params) { params_ = std::move(params); }
+    const std::vector<LocalVariable*>& get_params() const { return params_; }
+    void set_params(std::vector<LocalVariable*> params) { params_ = std::move(params); }
 
 private:
     Node* body_ = nullptr;
-    Obj* locals_ = nullptr;
+    LocalVariable* locals_ = nullptr;
     int stack_size_ = 0;
     Function* next_=nullptr;
     std::string_view name_;
 
-    std::vector<Obj*> params_;
+    std::vector<LocalVariable*> params_;
 };
 
 // AST node kind. Which of lhs/rhs/body/condition/then/els/init/inc/var/args is valid depends on kind.
@@ -119,7 +120,7 @@ private:
     Node* next = nullptr;
     Token* tok = nullptr;   // For error reporting.
     int val = 0;            // ND_NUM only.
-    Obj* var = nullptr;    // ND_VAR only.
+    LocalVariable* var = nullptr;    // ND_VAR only.
     Node* body = nullptr;   // ND_BLOCK, ND_EXPR_STMT (as stmt list), etc.
     Node* condition = nullptr;  // ND_IF, ND_FOR.
     Node* then = nullptr;
@@ -136,7 +137,7 @@ public:
     Node(NodeKind kind, Node* lhs, Node* rhs) : kind(kind), lhs(lhs), rhs(rhs) {}
     Node(NodeKind kind, Node* lhs) : kind(kind), lhs(lhs) {}
     Node(int val) : val(val) { this->kind = NodeKind::ND_NUM; }
-    Node(NodeKind kind, Obj* var) : kind(kind), var(var) {}
+    Node(NodeKind kind, LocalVariable* var) : kind(kind), var(var) {}
 
     NodeKind get_nodekind() const { return kind; }
     Token* get_tok() const { return tok; }
@@ -147,10 +148,10 @@ public:
     Node* get_lhs() const { return lhs; }
     Node* get_rhs() const { return rhs; }
     Node* get_nextstmt() const { return next; }
-    Obj* get_var() const { return var; }
+    LocalVariable* get_var() const { return var; }
 
     void set_nextstmt(Node* n) { next = n; }
-    void set_var(Obj* v) { var = v; }
+    void set_var(LocalVariable* v) { var = v; }
     void set_body(Node* b) { body = b; }
     Node* get_body() const { return body; }
 

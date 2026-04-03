@@ -11,7 +11,7 @@ class ASTContext;
 class Parser {
 private:
     Token* current_;
-    Obj* locals = nullptr;  // Head of current function's local variable list; reset at start of each function().
+    LocalVariable* locals = nullptr;  // Head of current function's local variable list; reset at start of each function().
     ASTContext& ctx_;
 
     // --- AST node construction ---
@@ -35,9 +35,9 @@ private:
     Node* compound_stmt(); // { stmt* }
 
     // --- Local symbols: find_var looks up in locals; new_lvar adds and chains ---
-    Obj* find_var(Token* tok);
-    Node* new_var_node(Obj* var, Token* tok);
-    Obj* new_lvar(const std::string& name,Type* ty);
+    LocalVariable* find_var(Token* tok);
+    Node* new_var_node(LocalVariable* var, Token* tok);
+    LocalVariable* new_lvar(const std::string& name,Type* ty);
 
     // --- Typed add/sub: require add_type on operands, then dispatch int vs pointer ---
     Node* new_num(int val, Token* tok);
@@ -50,7 +50,7 @@ private:
     DeclaratorResult declarator(Type* basety);
     Type* type_suffix(Type* ty, std::vector<ParsedParam>& params);
     std::vector<ParsedParam> parse_function_params();
-    std::vector<Obj*> create_param_locals(const std::vector<ParsedParam>& params);
+    std::vector<LocalVariable*> create_param_locals(const std::vector<ParsedParam>& params);
     Node* declaration();
 
     // --- Top-level: one function definition (declspec + declarator + "{" compound_stmt "}") ---
