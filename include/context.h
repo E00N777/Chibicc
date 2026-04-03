@@ -42,6 +42,14 @@ public:
         funcs_.push_back(std::move(p));
         return raw;
     }
+    
+    template<class... Args>
+    Program* make_program(Args&&... args) {
+        auto p = std::make_unique<Program>(std::forward<Args>(args)...);
+        Program* raw = p.get();
+        programs_.push_back(std::move(p));
+        return raw;
+    }
 
     Type* get_int_type() {
         if (!ty_int_) {
@@ -84,5 +92,6 @@ private:
     std::vector<std::unique_ptr<Obj>> objs_;
     std::vector<std::unique_ptr<Function>> funcs_;
     std::vector<std::unique_ptr<Type>> types_;
+    std::vector<std::unique_ptr<Program>> programs_;
     Type* ty_int_ = nullptr;
 };

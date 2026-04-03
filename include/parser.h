@@ -59,7 +59,7 @@ private:
 public:
     explicit Parser(Token* tk,ASTContext& ctx) : current_(tk) ,ctx_(ctx){}
 
-    Function* parse();
+    Program* parse();
 
     // --- Token stream: consume/expect/check/peek/advance (parser owns current_, tokens live in ctx) ---
     bool consume(const char* op )

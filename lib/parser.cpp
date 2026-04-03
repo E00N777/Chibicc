@@ -7,16 +7,24 @@
 #include <vector>
 
 // --- Program: list of function definitions. Types come from declspec/declarator; Obj from declaration(). ---
-Function* Parser::parse() {
-    Function head={};
-    Function* cur=&head;
+Program* Parser::parse() {
+
+    Function* function_begin = nullptr;
+    Function* cur = nullptr;
     while(peek()->get_kind() != TokenKind::EOF_TK)
     {
         Function* fn=function();
-        cur->set_next(fn);
-        cur=cur->get_next();
+
+        if (function_begin == nullptr) {
+            function_begin = fn;
+            cur = fn;
+        }else{
+            cur->set_next(fn);
+            cur=cur->get_next();
+        }
     }
-    return head.get_next();
+    Program* program = ctx_.make_program(function_begin); 
+    return program;
     
 }
 

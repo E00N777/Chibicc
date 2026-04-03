@@ -7,6 +7,24 @@
 class Node;
 class Token;
 class Type;
+class Function;
+class Program;
+
+// Top level program object. It's an abstraction of translate unit in LLVM IR.
+class Program {
+    public:
+        Program(Function* function_begin_) : function_begin_(function_begin_) {};
+        Program(Function* function_begin_, std::string_view file_name_)
+             : function_begin_(function_begin_), file_name_(file_name_) {};
+    
+        Function* get_function_begin() const { return function_begin_; }
+        
+    private:
+        // TODO: gloable valuables , typedef , .....
+        Function* function_begin_;
+        std::string_view file_name_;
+
+};
 
 // --- AST and symbol representation ---
 // Obj: one local variable (name, type, stack offset). Linked via next_ per function.

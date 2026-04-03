@@ -13,8 +13,8 @@ int main(int argc, char** argv) {
     ASTContext ctx;
     Token* token = Tokenize(argv[1], ctx);
     Parser parser(token, ctx);
-    Function* prog = parser.parse();
+    Program* program_translation_unit = parser.parse();
     CodeGen codegen;
-    codegen.generate(prog);
+    codegen.generate(program_translation_unit);
     return 0;
 }

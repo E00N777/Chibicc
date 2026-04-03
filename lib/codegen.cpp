@@ -211,9 +211,13 @@ void CodeGen::gen_stmt(Node* node) {
     diagnostic::error_tok(node->get_tok(), "invalid statement");
 }
 
-void CodeGen::generate(Function* prog) {
-    assign_lvar_offsets(prog);
-    for (Function* fn = prog; fn; fn = fn->get_next()) {
+void CodeGen::generate(Program* program_translation_unit) {
+    
+    for(Function* prog = program_translation_unit->get_function_begin(); prog; prog = prog->get_next()) {
+        assign_lvar_offsets(prog);
+    }
+
+    for (Function* fn = program_translation_unit->get_function_begin(); fn; fn = fn->get_next()) {
         current_fn_ = fn;
         std::cout << "    .globl " << fn->get_name() << "\n";
         std::cout << fn->get_name() << ":\n";
@@ -231,6 +235,8 @@ void CodeGen::generate(Function* prog) {
         std::cout << "    mov %rbp, %rsp\n";
         std::cout << "    pop %rbp\n";
         std::cout << "    ret\n";
-    }
+        }
+
+
     
 }

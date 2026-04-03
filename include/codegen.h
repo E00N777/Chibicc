@@ -10,7 +10,7 @@ class CodeGen {
 public:
     std::array<std::string_view, 6> args_regs = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
 
-    void generate(Function* prog);
+    void generate(Program* program_translation_unit);
     int gen_label_seq() { return label_seq++; }
 
 private:
