@@ -51,6 +51,14 @@ public:
         return raw;
     }
 
+    template<class... Args>
+    GlobalVariable* make_global_variable(Args&&... args) {
+        auto p = std::make_unique<GlobalVariable>(std::forward<Args>(args)...);
+        GlobalVariable* raw = p.get();
+        globals_.push_back(std::move(p));
+        return raw;
+    }
+
     Type* get_int_type() {
         if (!ty_int_) {
             auto p = std::make_unique<Type>(TypeKind::TY_INT);
@@ -93,5 +101,6 @@ private:
     std::vector<std::unique_ptr<Function>> funcs_;
     std::vector<std::unique_ptr<Type>> types_;
     std::vector<std::unique_ptr<Program>> programs_;
+    std::vector<std::unique_ptr<GlobalVariable>> globals_;
     Type* ty_int_ = nullptr;
 };

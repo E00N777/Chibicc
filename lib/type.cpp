@@ -29,6 +29,9 @@ void add_type(Node* node, ASTContext& ctx) {
         add_type(arg, ctx);
    
     switch (node->get_nodekind()) {
+    case NodeKind::ND_GVAR:
+        node->set_ty(node->get_gvar()->get_ty());
+        return;
     case NodeKind::ND_ADD:
     case NodeKind::ND_SUB:
     case NodeKind::ND_MUL:

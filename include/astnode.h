@@ -11,21 +11,6 @@ class Function;
 class Program;
 class GlobalVariable;
 
-// Top level program object. It's an abstraction of translate unit in LLVM IR.
-class Program {
-    public:
-        Program(Function* function_begin_) : function_begin_(function_begin_) {};
-        Program(Function* function_begin_, std::string_view file_name_)
-             : function_begin_(function_begin_), file_name_(file_name_) {};
-    
-        Function* get_function_begin() const { return function_begin_; }
-        
-    private:
-        // TODO: gloable valuables , typedef , .....
-        Function* function_begin_;
-        std::string_view file_name_;
-
-};
 
 // --- AST and symbol representation ---
 // Obj: one local variable (name, type, stack offset). Linked via next_ per function.
@@ -49,10 +34,29 @@ public:
     void set_ty(Type* ty) { ty_ = ty; }
 
 private:
-    LocalVariable* next_;
+    LocalVariable* next_ = nullptr;
     std::string name_;
     int offset_;
     Type* ty_ = nullptr;
+};
+
+// Global variable: name, type, and address.
+class GlobalVariable {
+    public:
+        GlobalVariable(std::string_view name, Type* ty, GlobalVariable* next = nullptr)
+            : next_(next), name_(std::move(name)), ty_(ty) {};
+            
+        GlobalVariable* get_next() const { return next_; }
+        void set_next(GlobalVariable* next) { next_ = next; }
+    
+        const std::string_view& get_name() const { return name_; }
+        Type* get_ty() const { return ty_; }
+
+    private:
+        GlobalVariable* next_ = nullptr;
+        std::string_view name_;
+        Type* ty_ = nullptr;
+        
 };
 
 // Function: body (first stmt of compound), locals list, and name. next_ chains all functions.
@@ -90,11 +94,54 @@ private:
     std::vector<LocalVariable*> params_;
 };
 
+// Top level program object. It's an abstraction of translate unit in LLVM IR.
+class Program {
+    public:
+    Program(Function* function_begin = nullptr, GlobalVariable* global_begin = nullptr, std::string_view file_name = {})
+        : function_begin_(function_begin), file_name_(file_name), global_variable_begin_(global_begin) {}
+    
+        Function* get_function_begin() const { return function_begin_; }
+        GlobalVariable* get_global_variable_begin() const { return global_variable_begin_; }
+
+        void append_function(Function* fn) {
+            if(!function_begin_) {
+                function_begin_ = fn;
+                return;
+            } else {
+                Function* cur = function_begin_;
+                while (cur->get_next()) {
+                    cur = cur->get_next();
+                }
+                cur->set_next(fn);
+            }
+        }
+
+        void append_global_variable(GlobalVariable* gv) {
+            if(!global_variable_begin_) {
+                global_variable_begin_ = gv;
+                return;
+            } else {
+                GlobalVariable* cur = global_variable_begin_;
+                while (cur->get_next()) {
+                    cur = cur->get_next();
+                }
+                cur->set_next(gv);
+            }
+        }
+        
+    private:
+        // TODO: gloable valuables , typedef , .....
+        Function* function_begin_ = nullptr;
+        std::string_view file_name_;
+        GlobalVariable* global_variable_begin_ = nullptr;
+
+};
+
 // AST node kind. Which of lhs/rhs/body/condition/then/els/init/inc/var/args is valid depends on kind.
 enum class NodeKind {
     ND_ADD, ND_SUB, ND_MUL, ND_DIV, ND_NUM, ND_NEG,
     ND_EQ, ND_NE, ND_LT, ND_LE,
-    ND_EXPR_STMT, ND_ASSIGN, ND_VAR, ND_RETURN, ND_BLOCK,
+    ND_EXPR_STMT, ND_ASSIGN, ND_VAR, ND_GVAR ,ND_RETURN, ND_BLOCK,
     ND_IF, ND_FOR, ND_ADDR, ND_DEREF, ND_FUNCALL,
 };
 // ParsedParam describes one parameter in a function declarator.
@@ -121,6 +168,7 @@ private:
     Token* tok = nullptr;   // For error reporting.
     int val = 0;            // ND_NUM only.
     LocalVariable* var = nullptr;    // ND_VAR only.
+    GlobalVariable* gvar = nullptr;    // ND_GVAR only.
     Node* body = nullptr;   // ND_BLOCK, ND_EXPR_STMT (as stmt list), etc.
     Node* condition = nullptr;  // ND_IF, ND_FOR.
     Node* then = nullptr;
@@ -138,6 +186,7 @@ public:
     Node(NodeKind kind, Node* lhs) : kind(kind), lhs(lhs) {}
     Node(int val) : val(val) { this->kind = NodeKind::ND_NUM; }
     Node(NodeKind kind, LocalVariable* var) : kind(kind), var(var) {}
+    Node(NodeKind kind, GlobalVariable* gvar) : kind(kind), gvar(gvar) {}
 
     NodeKind get_nodekind() const { return kind; }
     Token* get_tok() const { return tok; }
@@ -170,4 +219,7 @@ public:
     std::string_view get_func_name() const { return func_name; }
     Node* get_args() const { return args; }
     void set_args(Node* a) { args = a; }
+
+    GlobalVariable* get_gvar() const { return gvar; }
+    void set_gvar(GlobalVariable* v) { gvar = v; }
 };

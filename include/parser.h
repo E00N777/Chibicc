@@ -13,11 +13,13 @@ private:
     Token* current_;
     LocalVariable* locals = nullptr;  // Head of current function's local variable list; reset at start of each function().
     ASTContext& ctx_;
+    Program* program_ = nullptr;
 
     // --- AST node construction ---
     Node* new_binary(NodeKind kind, Node* lhs, Node* rhs, Token* tok);
     Node* make_binary(NodeKind kind, Node* lhs, Node* rhs, Token* op_tok);
     Node* make_func_call(NodeKind kind,Token* op_tok,std::string_view func_name);
+    Node* make_gvar_node(GlobalVariable* gvar, Token* tok);
 
     // --- Expression parsing (precedence climbing: expr -> assign -> equality -> ... -> primary) ---
     Node* primary();       // ( expr ) | ident [ ( args ) ] | num
@@ -55,6 +57,11 @@ private:
 
     // --- Top-level: one function definition (declspec + declarator + "{" compound_stmt "}") ---
     Function* function();
+    Function* parse_function_definition(const DeclaratorResult& decl);
+    GlobalVariable* find_gvar_variable(Token* tok);
+
+    void parse_external_declaration(Program* program); //function declaration 
+    void parse_global_declaration(Program* program, Type* basety, DeclaratorResult first); // global variable declaration
 
 public:
     explicit Parser(Token* tk,ASTContext& ctx) : current_(tk) ,ctx_(ctx){}

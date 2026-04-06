@@ -9,23 +9,62 @@
 // --- Program: list of function definitions. Types come from declspec/declarator; Obj from declaration(). ---
 Program* Parser::parse() {
 
-    Function* function_begin = nullptr;
-    Function* cur = nullptr;
-    while(peek()->get_kind() != TokenKind::EOF_TK)
-    {
-        Function* fn=function();
-
-        if (function_begin == nullptr) {
-            function_begin = fn;
-            cur = fn;
-        }else{
-            cur->set_next(fn);
-            cur=cur->get_next();
-        }
+    program_ = ctx_.make_program(); 
+    while (peek()->get_kind() != TokenKind::EOF_TK) {
+        parse_external_declaration(program_);
     }
-    Program* program = ctx_.make_program(function_begin); 
-    return program;
+    return program_;
     
+}
+// --- Top-level helper function ---
+void Parser::parse_external_declaration(Program* program) {
+    Type* basety = declspec();
+    DeclaratorResult first = declarator(basety);
+
+    
+    if (first.type->get_kind() == TypeKind::TY_FUNC && check("{")) {
+        Function* fn = parse_function_definition(first);
+        program->append_function(fn);
+        return;
+    }
+
+    parse_global_declaration(program, basety, first);
+}
+
+void Parser::parse_global_declaration(Program* program, Type* basety, DeclaratorResult first) {
+    DeclaratorResult decl = std::move(first);
+    while(true){
+
+        if(decl.type->get_kind() == TypeKind::TY_FUNC) {
+            diagnostic::error_tok(decl.name_tok, "expected a global variable declaration");
+        }
+        GlobalVariable* gv = ctx_.make_global_variable(decl.name_tok->get_content(), decl.type);
+        program->append_global_variable(gv);
+
+        if(consume("=")) {
+            diagnostic::error_tok(decl.name_tok, "global initializer is not supported yet");
+        }
+        if(consume(";")) {
+            return;
+        }
+        expect(",");
+        decl = declarator(basety);
+        
+    }
+}
+
+GlobalVariable* Parser::find_gvar_variable(Token* tok) {
+    std::string_view name = tok->get_content();
+    for (GlobalVariable* gv = program_->get_global_variable_begin(); gv; gv = gv->get_next())
+        if (gv->get_name() == name)
+            return gv;
+    return nullptr;
+}
+
+Node* Parser::make_gvar_node(GlobalVariable* gvar, Token* tok) {
+    Node* node = ctx_.make_node(NodeKind::ND_GVAR, gvar);
+    node->set_tok(tok);
+    return node;
 }
 
 // --- Local symbols: find by name in current function's locals list ---
@@ -473,12 +512,23 @@ Node* Parser::primary()
         if (is_followed_by("("))
             return funcall();
         Token* ident_tok = peek();
-        LocalVariable* var = find_var(peek());
-        if (!var)
-            diagnostic::error_tok(ident_tok, "undefined variable");
-        advance();
-        return new_var_node(var, ident_tok);
+
+        if(LocalVariable* var = find_var(peek())) {
+            if (!var)
+                diagnostic::error_tok(ident_tok, "undefined variable");
+            advance();
+            return new_var_node(var, ident_tok);
+        }
+
+        if(GlobalVariable* gvar = find_gvar_variable(peek())) {
+            if (!gvar)
+                diagnostic::error_tok(ident_tok, "undefined variable");
+            advance();
+            return make_gvar_node(gvar, ident_tok);
+        }
+        diagnostic::error_tok(ident_tok, "undefined variable");    
     }
+    
     if (peek()->get_kind() == TokenKind::NUM) {
         Token* num_tok = peek();
         Node* node = ctx_.make_node(peek()->get_number());
@@ -568,14 +618,8 @@ Node* Parser::funcall()
     return node;
 }
 
-// One function: declspec + declarator (name + optional () for function type), then { compound_stmt }.
-// locals reset so this function's declarations build a fresh list; that list is stored in the Function.
-Function* Parser::function()
-{
-    // Reset the local symbol list before starting a new function so parameters
-    // and local declarations for different functions never mix together.
-    Type* basety = declspec();
-    DeclaratorResult decl = declarator(basety);
+Function* Parser::parse_function_definition(const DeclaratorResult& decl) {
+
     locals = nullptr;
 
     // Function parameters behave like predeclared local variables whose initial
@@ -587,4 +631,21 @@ Function* Parser::function()
     Function* fn = ctx_.make_function(body, locals, decl.name_tok->get_content());
     fn->set_params(std::move(params));
     return fn;
+}
+
+// One function: declspec + declarator (name + optional () for function type), then { compound_stmt }.
+// locals reset so this function's declarations build a fresh list; that list is stored in the Function.
+Function* Parser::function()
+{
+    // Reset the local symbol list before starting a new function so parameters
+    // and local declarations for different functions never mix together.
+    Type* basety = declspec();
+    DeclaratorResult decl = declarator(basety);
+    
+    if(decl.type->get_kind()!=TypeKind::TY_FUNC) {
+        diagnostic::error_tok(decl.name_tok, "expected a function declaration");
+    }
+
+    return parse_function_definition(decl);
+    
 }

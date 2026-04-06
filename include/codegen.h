@@ -26,4 +26,5 @@ private:
     static int align_to(int n, int align);
     void assign_lvar_offsets(Function* prog);
     void load(Type* ty);
+    void emit_data(Program* program);
 };

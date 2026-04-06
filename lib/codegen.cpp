@@ -24,6 +24,15 @@ void CodeGen::pop(const char* reg) {
     depth--;
 }
 
+void CodeGen::emit_data(Program* program) {
+    for(GlobalVariable* gv = program->get_global_variable_begin(); gv; gv = gv->get_next()) {
+        std::cout << "    .data\n";
+        std::cout << ".globl " << gv->get_name() << "\n";
+        std::cout << gv->get_name() << ":\n";
+        std::cout << "    .zero " << gv->get_ty()->get_size() << "\n";
+    }
+}
+
 // The SysV ABI passes the first six integer arguments in registers. We spill
 // them into the stack slots assigned to the function's parameter variables so
 // the rest of the compiler can treat parameters exactly like ordinary locals.
@@ -43,6 +52,9 @@ void CodeGen::gen_addr(Node* node) {
     {
         case NodeKind::ND_VAR:
             std::cout << "    lea " << node->get_var()->get_offset() << "(%rbp), %rax\n";
+            break;
+        case NodeKind::ND_GVAR:
+            std::cout << "    lea " << node->get_gvar()->get_name() << "(%rip), %rax\n";
             break;
         case NodeKind::ND_DEREF:
             gen_expr(node->get_lhs());
@@ -78,6 +90,7 @@ void CodeGen::gen_expr(Node* node)
         std::cout << "    neg %rax\n";
         return;
     case NodeKind::ND_VAR:
+    case NodeKind::ND_GVAR:
         gen_addr(node);
         load(node->get_ty());
         return;
@@ -212,11 +225,11 @@ void CodeGen::gen_stmt(Node* node) {
 }
 
 void CodeGen::generate(Program* program_translation_unit) {
-    
-    for(Function* prog = program_translation_unit->get_function_begin(); prog; prog = prog->get_next()) {
-        assign_lvar_offsets(prog);
-    }
 
+    emit_data(program_translation_unit);
+    std::cout << "    .text\n";
+    assign_lvar_offsets(program_translation_unit->get_function_begin());
+    
     for (Function* fn = program_translation_unit->get_function_begin(); fn; fn = fn->get_next()) {
         current_fn_ = fn;
         std::cout << "    .globl " << fn->get_name() << "\n";
