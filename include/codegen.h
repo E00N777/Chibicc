@@ -9,7 +9,7 @@
 class CodeGen {
 public:
     std::array<std::string_view, 6> args_regs = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
-
+    std::array<std::string_view,6> char_args_regs = {"%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
     void generate(Program* program_translation_unit);
     int gen_label_seq() { return label_seq++; }
 
@@ -26,5 +26,6 @@ private:
     static int align_to(int n, int align);
     void assign_lvar_offsets(Function* prog);
     void load(Type* ty);
+    void store(Type* ty);
     void emit_data(Program* program);
 };

@@ -7,8 +7,12 @@ Type* get_ty_int(ASTContext& ctx) {
     return ctx.get_int_type();
 }
 
-bool is_integer(Type* ty, ASTContext& ctx) {
-    return ty && ty->get_kind() == TypeKind::TY_INT;
+Type* get_ty_char(ASTContext& ctx) {
+    return ctx.get_char_type();
+}
+
+bool is_integer_or_char(Type* ty, ASTContext& ctx) {
+    return ty && (ty->get_kind() == TypeKind::TY_INT || ty->get_kind() == TypeKind::TY_CHAR);
 }
 
 // Bottom-up type assignment for the AST. Called from parser (compound_stmt) after each statement.

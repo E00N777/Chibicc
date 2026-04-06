@@ -5,7 +5,7 @@
 class Node;
 class ASTContext;
 
-enum class TypeKind { TY_INT, TY_PTR, TY_FUNC, TY_ARRAY };
+enum class TypeKind { TY_INT, TY_PTR, TY_FUNC, TY_ARRAY, TY_CHAR };
 
 // Type: int, pointer-to-T, or function-returning-T. Created in parser (declspec/declarator)
 // and in context (get_int_type, make_ptr_type, make_func_type). add_type() in type.cpp
@@ -44,7 +44,7 @@ private:
     Type& operator=(const Type&) = delete;
 };
 
-bool is_integer(Type* ty, ASTContext& ctx);
+bool is_integer_or_char(Type* ty, ASTContext& ctx);
 Type* get_ty_int(ASTContext& ctx);
 // Recursively assign type to every node in the AST (bottom-up). Called from compound_stmt after each stmt.
 void add_type(Node* node, ASTContext& ctx);

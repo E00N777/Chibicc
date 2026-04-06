@@ -69,6 +69,16 @@ public:
         return ty_int_;
     }
 
+    Type* get_char_type() {
+        if(!ty_char_) {
+            auto p = std::make_unique<Type>(TypeKind::TY_CHAR);
+            p->set_size(1);
+            ty_char_ = p.get();
+            types_.push_back(std::move(p));
+        }
+        return ty_char_;
+    }
+
     Type* make_ptr_type(Type* base) {
         auto p = std::make_unique<Type>(TypeKind::TY_PTR, base);
         Type* raw = p.get();
@@ -103,4 +113,5 @@ private:
     std::vector<std::unique_ptr<Program>> programs_;
     std::vector<std::unique_ptr<GlobalVariable>> globals_;
     Type* ty_int_ = nullptr;
+    Type* ty_char_ = nullptr;
 };

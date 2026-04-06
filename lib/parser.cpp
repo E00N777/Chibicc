@@ -168,7 +168,7 @@ Node* Parser::new_add(Node* lhs, Node* rhs, Token* tok) {
     add_type(lhs, ctx_);
     add_type(rhs, ctx_);
 
-    if (is_integer(lhs->get_ty(), ctx_) && is_integer(rhs->get_ty(), ctx_))
+    if (is_integer_or_char(lhs->get_ty(), ctx_) && is_integer_or_char(rhs->get_ty(), ctx_))
         return new_binary(NodeKind::ND_ADD, lhs, rhs, tok);
 
     if (lhs->get_ty()->get_base() && rhs->get_ty()->get_base())
@@ -187,12 +187,12 @@ Node* Parser::new_sub(Node* lhs, Node* rhs, Token* tok) {
     add_type(lhs, ctx_);
     add_type(rhs, ctx_);
 
-    if (is_integer(lhs->get_ty(), ctx_) && is_integer(rhs->get_ty(), ctx_))
+    if (is_integer_or_char(lhs->get_ty(), ctx_) && is_integer_or_char(rhs->get_ty(), ctx_))
         return new_binary(NodeKind::ND_SUB, lhs, rhs, tok);
 
     int scale = lhs->get_ty()->get_base()->get_size();
 
-    if (lhs->get_ty()->get_base() && is_integer(rhs->get_ty(), ctx_)) {
+    if (lhs->get_ty()->get_base() && is_integer_or_char(rhs->get_ty(), ctx_)) {
         rhs = new_binary(NodeKind::ND_MUL, rhs, new_num(scale, tok), tok);
         add_type(rhs, ctx_);
         Node* node = new_binary(NodeKind::ND_SUB, lhs, rhs, tok);
@@ -212,8 +212,13 @@ Node* Parser::new_sub(Node* lhs, Node* rhs, Token* tok) {
 // --- Declaration specifier: currently only "int" ---
 Type* Parser::declspec()
 {
-    expect("int");
-    return ctx_.get_int_type();
+    if(consume("int")) {
+        return ctx_.get_int_type();
+    }
+    if(consume("char")) {
+        return ctx_.get_char_type();
+    }
+    diagnostic::error_at(peek()->get_content(), "expected int or char");
 }
 
 Type* Parser::type_suffix(Type* ty, std::vector<ParsedParam>& params)
@@ -345,7 +350,7 @@ Node* Parser::compound_stmt()
     Node* cur = &head;
 
     while (!check("}")) {
-        if (check("int"))
+        if (check("int") || check("char"))
             cur->set_nextstmt(declaration());
         else
             cur->set_nextstmt(stmt());

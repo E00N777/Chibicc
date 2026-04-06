@@ -12,7 +12,24 @@ void CodeGen::load(Type* ty) {
     if (ty->get_kind() == TypeKind::TY_ARRAY) {
         return;
     }
-    std::cout << "    mov (%rax), %rax\n";
+    if(ty->get_size() == 1) {
+        std::cout << "    movsbq (%rax), %rax\n";
+    } else {
+        std::cout << "    mov (%rax), %rax\n";
+    }
+}
+
+void CodeGen::store(Type* ty) {
+    pop("%rdi");
+
+    if (ty->get_kind() == TypeKind::TY_ARRAY) {
+        return;
+    }
+    if(ty->get_size() == 1) {
+        std::cout << "    movb %al, (%rdi)\n";
+    } else {
+        std::cout << "    mov %rax, (%rdi)\n";
+    }
 }
 
 void CodeGen::push() {
@@ -34,7 +51,7 @@ void CodeGen::emit_data(Program* program) {
         if(gv->get_has_init()) {
             std::cout << ".globl " << gv->get_name() << "\n";
             std::cout << gv->get_name() << ":\n";
-            std::cout << "    .int " << gv->get_init_val() << "\n";
+            std::cout << "    .quad " << gv->get_init_val() << "\n";
         }else{
             std::cout << ".globl " << gv->get_name() << "\n";
             std::cout << gv->get_name() << ":\n";
@@ -52,7 +69,11 @@ void CodeGen::store_function_params(Function* fn) {
 
     for (std::size_t i = 0; i < fn->get_params().size(); ++i) {
         LocalVariable* param = fn->get_params()[i];
-        std::cout << "    mov " << args_regs[i] << ", " << param->get_offset() << "(%rbp)\n";
+        if(param->get_ty()->get_kind() == TypeKind::TY_CHAR) {
+            std::cout << "    mov " << char_args_regs[i] << ", " << param->get_offset() << "(%rbp)\n";
+        } else {
+            std::cout << "    mov " << args_regs[i] << ", " << param->get_offset() << "(%rbp)\n";
+        }
     }
 }
 
@@ -108,8 +129,7 @@ void CodeGen::gen_expr(Node* node)
         gen_addr(node->get_lhs());
         push();
         gen_expr(node->get_rhs());
-        pop("%rdi");
-        std::cout << "    mov %rax, (%rdi)\n";
+        store(node->get_lhs()->get_ty());
         return;
     case NodeKind::ND_ADDR:
         gen_addr(node->get_lhs());
