@@ -25,11 +25,21 @@ void CodeGen::pop(const char* reg) {
 }
 
 void CodeGen::emit_data(Program* program) {
-    for(GlobalVariable* gv = program->get_global_variable_begin(); gv; gv = gv->get_next()) {
+    if (program->get_global_variable_begin()) {
         std::cout << "    .data\n";
-        std::cout << ".globl " << gv->get_name() << "\n";
-        std::cout << gv->get_name() << ":\n";
-        std::cout << "    .zero " << gv->get_ty()->get_size() << "\n";
+    }else{
+        return;
+    }
+    for(GlobalVariable* gv = program->get_global_variable_begin(); gv; gv = gv->get_next()) {
+        if(gv->get_has_init()) {
+            std::cout << ".globl " << gv->get_name() << "\n";
+            std::cout << gv->get_name() << ":\n";
+            std::cout << "    .int " << gv->get_init_val() << "\n";
+        }else{
+            std::cout << ".globl " << gv->get_name() << "\n";
+            std::cout << gv->get_name() << ":\n";
+            std::cout << "    .zero " << gv->get_ty()->get_size() << "\n";
+    }
     }
 }
 

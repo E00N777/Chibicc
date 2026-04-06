@@ -52,10 +52,16 @@ class GlobalVariable {
         const std::string_view& get_name() const { return name_; }
         Type* get_ty() const { return ty_; }
 
+        bool get_has_init() const { return has_init_; }
+        int get_init_val() const { return init_val_; }
+        void set_init_val(int val) { init_val_ = val; has_init_ = true; }
+
     private:
         GlobalVariable* next_ = nullptr;
         std::string_view name_;
         Type* ty_ = nullptr;
+        bool has_init_ = false;
+        int init_val_ = 0;
         
 };
 

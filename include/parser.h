@@ -63,6 +63,7 @@ private:
     void parse_external_declaration(Program* program); //function declaration 
     void parse_global_declaration(Program* program, Type* basety, DeclaratorResult first); // global variable declaration
 
+    int eval_const_expr(Node* node);
 public:
     explicit Parser(Token* tk,ASTContext& ctx) : current_(tk) ,ctx_(ctx){}
 

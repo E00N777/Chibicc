@@ -42,7 +42,11 @@ void Parser::parse_global_declaration(Program* program, Type* basety, Declarator
         program->append_global_variable(gv);
 
         if(consume("=")) {
-            diagnostic::error_tok(decl.name_tok, "global initializer is not supported yet");
+            if (decl.type->get_kind() != TypeKind::TY_INT)
+                diagnostic::error_tok(peek(), "global initializer is only supported for int");
+
+            Node* init = assign();
+            gv->set_init_val(eval_const_expr(init));
         }
         if(consume(";")) {
             return;
@@ -52,6 +56,51 @@ void Parser::parse_global_declaration(Program* program, Type* basety, Declarator
         
     }
 }
+
+int Parser::eval_const_expr(Node* node) {
+    if (!node)
+        diagnostic::error_at(peek()->get_content(), "expected a constant expression");
+
+    switch (node->get_nodekind()) {
+    case NodeKind::ND_NUM:
+        return node->get_val();
+
+    case NodeKind::ND_NEG:
+        return -eval_const_expr(node->get_lhs());
+
+    case NodeKind::ND_ADD:
+        return eval_const_expr(node->get_lhs()) + eval_const_expr(node->get_rhs());
+
+    case NodeKind::ND_SUB:
+        return eval_const_expr(node->get_lhs()) - eval_const_expr(node->get_rhs());
+
+    case NodeKind::ND_MUL:
+        return eval_const_expr(node->get_lhs()) * eval_const_expr(node->get_rhs());
+
+    case NodeKind::ND_DIV: {
+        long rhs = eval_const_expr(node->get_rhs());
+        if (rhs == 0)
+            diagnostic::error_tok(node->get_tok(), "division by zero in constant expression");
+        return eval_const_expr(node->get_lhs()) / rhs;
+    }
+
+    case NodeKind::ND_EQ:
+        return eval_const_expr(node->get_lhs()) == eval_const_expr(node->get_rhs());
+
+    case NodeKind::ND_NE:
+        return eval_const_expr(node->get_lhs()) != eval_const_expr(node->get_rhs());
+
+    case NodeKind::ND_LT:
+        return eval_const_expr(node->get_lhs()) < eval_const_expr(node->get_rhs());
+
+    case NodeKind::ND_LE:
+        return eval_const_expr(node->get_lhs()) <= eval_const_expr(node->get_rhs());
+
+    default:
+        diagnostic::error_tok(node->get_tok(), "not a constant expression");
+    }
+}
+
 
 GlobalVariable* Parser::find_gvar_variable(Token* tok) {
     std::string_view name = tok->get_content();
@@ -528,7 +577,7 @@ Node* Parser::primary()
         }
         diagnostic::error_tok(ident_tok, "undefined variable");    
     }
-    
+
     if (peek()->get_kind() == TokenKind::NUM) {
         Token* num_tok = peek();
         Node* node = ctx_.make_node(peek()->get_number());

@@ -170,4 +170,10 @@ assert 3 'int x[4]; int main() { x[0]=0; x[1]=1; x[2]=2; x[3]=3; return x[3]; }'
 assert 8 'int x; int main() { return sizeof(x); }'
 assert 32 'int x[4]; int main() { return sizeof(x); }'
 
+assert 3 'int x=3; int main() { return x; }'
+assert 7 'int x=1+2*3; int main() { return x; }'
+assert 9 'int x=(1+2)*3; int main() { return x; }'
+assert 1 'int x=3==3; int main() { return x; }'
+assert 0 'int x=3!=3; int main() { return x; }'
+
 echo OK
