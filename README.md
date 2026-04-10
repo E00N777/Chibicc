@@ -1,137 +1,248 @@
-# Casting — A Toy C Compiler Rewritten in C++
+# Casting
 
-A from-scratch C compiler targeting x86-64 Linux, rewritten in modern C++ (C++20).
-Based on [Rui Ueyama's chibicc](https://github.com/rui314/chibicc), this project reimplements the compiler with C++ idioms — classes, RAII-based memory management, `std::unique_ptr`, `std::string_view`, and clean separation of concerns.
+Casting is a small C compiler written in modern C++20. It takes a C translation unit passed as a single command-line string, parses it into an AST, and emits x86-64 AT&T assembly for Linux (System V ABI).
 
-This is primarily an educational project: a learning journal for understanding how compilers work from tokenization to code generation.
+The project started as a C++ rewrite of [chibicc](https://github.com/rui314/chibicc), but the implementation has already grown beyond the original "single function body" stage. The current codebase supports multiple function definitions, global variables, arrays, `char`, and `sizeof`, while keeping the implementation compact enough to study end to end.
 
-## Features
+This repository is best read as an educational compiler project: tokenizer -> parser -> type propagation -> code generation.
 
-- **Tokenizer** — Lexes integer literals, identifiers, keywords, and multi-character operators (`==`, `!=`, `>=`, `<=`)
-- **Recursive-descent parser** — Precedence-climbing expression parser with support for:
-  - Arithmetic: `+`, `-`, `*`, `/`, unary `-`
-  - Comparison: `==`, `!=`, `<`, `<=`, `>`, `>=`
-  - Assignment: `=`
-  - Pointer arithmetic with automatic scaling (ptr + int, ptr - ptr)
-- **Type system** — `int` and pointer-to-T types, with bottom-up type propagation across the AST
-- **Declarations** — `int` variables with optional initializers, pointer declarators (`int *p`, `int **pp`), and comma-separated declarations (`int x=3, y=5;`)
-- **Control flow** — `if`/`else`, `while`, `for`, `return`, nested block scoping `{}`
-- **Function calls** — Supports calling external C functions with up to 6 arguments (x86-64 System V ABI)
-- **Address-of / Dereference** — `&` and `*` operators for pointer manipulation
-- **x86-64 code generation** — Emits AT&T syntax assembly to stdout, linkable with GCC
-- **Centralized memory management** — All AST nodes, tokens, types, and objects are owned by a single `ASTContext` via `std::unique_ptr`, providing automatic cleanup with zero manual `delete`
+## Current Status
 
-## Project Structure
+The implementation and the test suite are currently aligned around the following feature set:
 
-``` 
-Casting/
-├── Main.cpp                 # Entry point: tokenize → parse → codegen
-├── CMakeLists.txt           # Build configuration (C++20, static library + executable)
-├── test.sh                  # Integration test suite (shell-based, 100+ assertions)
-│
-├── include/
-│   ├── tokenize.h           # Token class and Tokenize() interface
-│   ├── astnode.h            # AST Node, Obj (local variable), Function definitions
-│   ├── parser.h             # Recursive-descent Parser class
-│   ├── type.h               # Type system: TypeKind, Type class, type utilities
-│   ├── context.h            # ASTContext: centralized arena-style memory owner
-│   ├── codegen.h            # x86-64 CodeGen class
-│   └── diagnostic.h         # Error reporting utilities
-│
-├── lib/
-│   ├── tokenize.cpp         # Lexer implementation
-│   ├── parser.cpp           # Parser implementation (expression, statement, declaration)
-│   ├── type.cpp             # Type propagation (add_type) and type utilities
-│   ├── codegen.cpp          # x86-64 assembly emission
-│   └── diagnostic.cpp       # Error formatting and fatal exit
-│
+- Integer and character types: `int`, `char`
+- Pointer types and pointer arithmetic
+- Fixed-size arrays, including multi-dimensional arrays
+- Local variables and global variables
+- Global integer initializers with constant expressions
+- Function definitions inside the input translation unit
+- Function calls, including recursive calls
+- Control flow: `if` / `else`, `while`, `for`, `return`, blocks
+- Unary operators: `+`, `-`, `&`, `*`, `sizeof`
+- Binary operators: `+`, `-`, `*`, `/`, `==`, `!=`, `<`, `<=`, `>`, `>=`, `=`
+- Array indexing syntax: `a[i]` and even `i[a]`
+- x86-64 code generation targeting Linux System V ABI
 
-```
-
-## Architecture
-
-```
-Source string (argv[1])
-        │
-        ▼
-   ┌──────────┐
-   │ Tokenizer │──→  Token linked list
-   └──────────┘
-        │
-        ▼
-   ┌──────────┐
-   │  Parser   │──→  AST (Node tree) + Function + Obj list
-   └──────────┘
-        │
-        ▼
-   ┌──────────┐
-   │  CodeGen  │──→  x86-64 assembly (stdout)
-   └──────────┘
-```
-
-All heap-allocated objects (Token, Node, Obj, Function, Type) are created through `ASTContext` factory methods and stored in `std::vector<std::unique_ptr<T>>`. When `ASTContext` goes out of scope at the end of `main()`, everything is automatically freed — no manual `delete` required.
-
-## Building
-
-Requires a C++20 compiler (GCC 10+ or Clang 12+) and CMake 3.10+.
-
-```bash
-git clone https://github.com/E00N777/Casting.git  && cd Casting
-mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Debug
-cmake --build .
-```
-
-## Running
-
-The compiler reads a single C function body from the command line and emits x86-64 assembly to stdout:
-
-```bash
-./build/Casting '{ int x=3; int y=5; return x+y; }' > tmp.s
-gcc -static -o tmp tmp.s
-./tmp
-echo $?   # prints 8
-```
-
-## Testing
-
-The test suite (`test.sh`) compiles helper C functions with GCC, then runs 100+ assertions covering arithmetic, variables, pointers, control flow, and function calls:
-
-```bash
-cd build
-ctest
-# or run directly:
-../test.sh ./Casting
-```
+The bundled integration test currently passes locally with `ctest`, covering arithmetic, locals, globals, function calls, recursion, arrays, `char`, and `sizeof`.
 
 ## Supported C Subset
 
-| Category          | Examples                                       |
-|-------------------|-------------------------------------------------|
-| Integer literals  | `0`, `42`, `-10`                                |
-| Variables         | `int a=3;` `int *p=&a;` `int x, y;`            |
-| Arithmetic        | `a+b`, `a*b/c`, `-x`                            |
-| Comparison        | `a==b`, `a!=b`, `a<b`, `a<=b`, `a>b`, `a>=b`   |
-| Pointers          | `&x`, `*p`, `**pp`, pointer arithmetic           |
-| Control flow      | `if/else`, `while`, `for`, `return`, `{}`       |
-| Function calls    | `add(3, 5)`, up to 6 args (System V ABI)        |
+Casting currently accepts source shaped like a small translation unit, for example:
+
+```c
+int x = 3;
+
+int add2(int a, int b) {
+  return a + b;
+}
+
+int main() {
+  int y[3];
+  y[0] = x;
+  y[1] = 4;
+  y[2] = add2(y[0], y[1]);
+  return y[2];
+}
+```
+
+### Syntax and semantics implemented
+
+- Top-level declarations
+  - Function definitions
+  - Global variable declarations
+  - Global integer initializers using constant expressions
+- Statements
+  - Expression statements
+  - Compound blocks `{ ... }`
+  - `if` / `else`
+  - `while`
+  - `for`
+  - `return`
+- Expressions
+  - Integer literals
+  - Variable references
+  - Assignment
+  - Arithmetic and comparison operators
+  - Address-of and dereference
+  - Function calls with up to 6 register-passed arguments
+  - Array subscripting
+  - `sizeof`
+- Types
+  - `int`
+  - `char`
+  - Pointers to supported types
+  - Fixed-size arrays
+  - Function types in declarations
+
+### Important limitations
+
+- Input is passed as one command-line string, not from `.c` files yet.
+- Only `int` and `char` scalar types are implemented.
+- No string literals, structs, unions, typedefs, enums, or preprocessor.
+- No local initializer lists or aggregate initialization.
+- Global initializers are limited to constant expressions and only for `int` globals.
+- No explicit function prototype handling.
+- Code generation assumes Linux x86-64 and the System V calling convention.
+- The backend currently supports up to 6 function arguments in registers.
+- Block syntax is supported, but the compiler does not model full C scope machinery yet.
+
+## Architecture
+
+```text
+Source string
+    |
+    v
+Tokenizer
+    |
+    v
+Recursive-descent parser
+    |
+    v
+AST + symbols + types
+    |
+    v
+Type propagation
+    |
+    v
+Code generator
+    |
+    v
+x86-64 AT&T assembly
+```
+
+### Main components
+
+- [`Main.cpp`](Main.cpp)
+  - Entry point that tokenizes, parses, and emits assembly.
+- [`include/tokenize.h`](include/tokenize.h) / [`lib/tokenize.cpp`](lib/tokenize.cpp)
+  - Lexer for identifiers, keywords, integers, punctuation, and multi-character operators.
+- [`include/parser.h`](include/parser.h) / [`lib/parser.cpp`](lib/parser.cpp)
+  - Recursive-descent parser for declarations, statements, expressions, arrays, functions, globals, and `sizeof`.
+- [`include/type.h`](include/type.h) / [`lib/type.cpp`](lib/type.cpp)
+  - Type objects plus bottom-up AST type propagation.
+- [`include/codegen.h`](include/codegen.h) / [`lib/codegen.cpp`](lib/codegen.cpp)
+  - x86-64 assembly emitter.
+- [`include/context.h`](include/context.h)
+  - Central ownership arena for tokens, nodes, types, functions, and globals.
+
+## Build
+
+Requirements:
+
+- CMake 3.10+
+- A C++20 compiler
+- GCC toolchain available for linking test binaries from generated assembly
+
+```bash
+git clone https://github.com/E00N777/Casting.git
+cd Casting
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build
+```
+
+## Run
+
+Casting expects exactly one argument: the entire C translation unit.
+
+```bash
+./build/Casting 'int main() { return 42; }' > tmp.s
+gcc -static -o tmp tmp.s
+./tmp
+echo $?
+```
+
+Example with globals and multiple functions:
+
+```bash
+./build/Casting '
+int base = 3;
+
+int add2(int a, int b) {
+  return a + b;
+}
+
+int main() {
+  return add2(base, 5);
+}' > tmp.s
+
+gcc -static -o tmp tmp.s
+./tmp
+echo $?
+```
+
+## Test
+
+The repository includes a shell-based integration test suite wired into CTest.
+
+```bash
+cd build
+ctest --output-on-failure
+```
+
+Or run the script directly:
+
+```bash
+./test.sh ./build/Casting
+```
+
+The current test coverage includes:
+
+- Arithmetic and comparisons
+- Local variables and assignments
+- Control flow
+- Pointers and pointer arithmetic
+- Arrays and multi-dimensional arrays
+- `sizeof`
+- Global variables and global initializers
+- Function definitions, parameter passing, and recursion
+- `char` values and `char` parameters
+
+## Project Layout
+
+```text
+Casting/
+├── Main.cpp
+├── CMakeLists.txt
+├── test.sh
+├── include/
+│   ├── astnode.h
+│   ├── codegen.h
+│   ├── context.h
+│   ├── diagnostic.h
+│   ├── parser.h
+│   ├── tokenize.h
+│   └── type.h
+├── lib/
+│   ├── codegen.cpp
+│   ├── diagnostic.cpp
+│   ├── parser.cpp
+│   ├── tokenize.cpp
+│   └── type.cpp
+└── docs/
+    └── chibicc-architecture-api-cn.md
+```
+
+## Notes for Readers
+
+- Memory ownership is centralized in `ASTContext` using `std::unique_ptr`, while the parser and code generator work with raw non-owning pointers.
+- The parser performs syntactic construction first, then `add_type()` decorates AST nodes with semantic type information used by later stages.
+- Arrays are treated specially during code generation: array expressions decay to addresses in expression contexts, while array assignment is rejected.
 
 ## Roadmap
 
-Planned features (following the original chibicc progression):
+Reasonable next steps from the current codebase:
 
-- [ ] Multiple function definitions
-- [ ] `char` type and string literals
-- [ ] Arrays and `sizeof`
-- [ ] Global variables
-- [ ] Structs and unions
-- [ ] Preprocessor
+- Read source from files instead of a single CLI string
+- Add function declarations and better semantic checks
+- Implement string literals and array/global initialization beyond integer constants
+- Support richer C types such as structs and unions
+- Add a preprocessor or integrate with an external preprocessing step
 
 ## Acknowledgments
 
-- [chibicc](https://github.com/rui314/chibicc) by Rui Ueyama — the original C-language implementation this project is based on
-- [An Incremental Approach to Compiler Construction](http://scheme2006.cs.uchicago.edu/11-ghuloum.pdf) — the pedagogical philosophy behind chibicc
+- [chibicc](https://github.com/rui314/chibicc) by Rui Ueyama
+- [An Incremental Approach to Compiler Construction](http://scheme2006.cs.uchicago.edu/11-ghuloum.pdf)
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
+MIT. See [LICENSE](LICENSE).
