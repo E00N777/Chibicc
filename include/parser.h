@@ -60,8 +60,13 @@ private:
     Function* parse_function_definition(const DeclaratorResult& decl);
     GlobalVariable* find_gvar_variable(Token* tok);
 
-    void parse_external_declaration(Program* program); //function declaration 
+    void parse_external_declaration(Program* program); //function declaration
     void parse_global_declaration(Program* program, Type* basety, DeclaratorResult first); // global variable declaration
+
+    // --- String literal: emitted as an anonymous global initialized with raw bytes. ---
+    std::string new_unique_name();
+    GlobalVariable* new_anon_gvar(Type* ty);
+    GlobalVariable* new_string_literal(Token* tok);
 
     int eval_const_expr(Node* node);
 public:

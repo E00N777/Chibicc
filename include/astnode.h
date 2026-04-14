@@ -56,12 +56,18 @@ class GlobalVariable {
         int get_init_val() const { return init_val_; }
         void set_init_val(int val) { init_val_ = val; has_init_ = true; }
 
+        bool has_init_data() const { return has_init_string_;}
+        const std::string& get_init_string() const { return init_string_; }
+        void set_init_string(std::string str) { init_string_ = std::move(str); has_init_string_ = true; }
+
     private:
         GlobalVariable* next_ = nullptr;
         std::string_view name_;
         Type* ty_ = nullptr;
         bool has_init_ = false;
         int init_val_ = 0;
+        std::string init_string_;
+        bool has_init_string_ = false;
         
 };
 

@@ -48,15 +48,16 @@ void CodeGen::emit_data(Program* program) {
         return;
     }
     for(GlobalVariable* gv = program->get_global_variable_begin(); gv; gv = gv->get_next()) {
-        if(gv->get_has_init()) {
-            std::cout << ".globl " << gv->get_name() << "\n";
-            std::cout << gv->get_name() << ":\n";
+        std::cout << ".globl " << gv->get_name() << "\n";
+        std::cout << gv->get_name() << ":\n";
+        if(gv->has_init_data()) {
+            for (unsigned char c : gv->get_init_string())
+                std::cout << "    .byte " << static_cast<int>(c) << "\n";
+        } else if(gv->get_has_init()) {
             std::cout << "    .quad " << gv->get_init_val() << "\n";
-        }else{
-            std::cout << ".globl " << gv->get_name() << "\n";
-            std::cout << gv->get_name() << ":\n";
+        } else {
             std::cout << "    .zero " << gv->get_ty()->get_size() << "\n";
-    }
+        }
     }
 }
 

@@ -116,6 +116,24 @@ Node* Parser::make_gvar_node(GlobalVariable* gvar, Token* tok) {
     return node;
 }
 
+std::string Parser::new_unique_name() {
+    static int id = 0;
+    return ".L.." + std::to_string(id++);
+}
+
+GlobalVariable* Parser::new_anon_gvar(Type* ty) {
+    std::string_view name = ctx_.intern_string(new_unique_name());
+    GlobalVariable* gv = ctx_.make_global_variable(name, ty);
+    program_->append_global_variable(gv);
+    return gv;
+}
+
+GlobalVariable* Parser::new_string_literal(Token* tok) {
+    GlobalVariable* gv = new_anon_gvar(tok->get_type());
+    gv->set_init_string(tok->get_string());
+    return gv;
+}
+
 // --- Local symbols: find by name in current function's locals list ---
 LocalVariable* Parser::find_var(Token* tok) {
     std::string_view name = tok->get_content();
@@ -581,6 +599,12 @@ Node* Parser::primary()
             return make_gvar_node(gvar, ident_tok);
         }
         diagnostic::error_tok(ident_tok, "undefined variable");    
+    }
+    if(peek()->get_kind() == TokenKind::STR) {
+        Token* str_tok = peek();
+        GlobalVariable* gvar = new_string_literal(str_tok);
+        advance();
+        return make_gvar_node(gvar, str_tok);
     }
 
     if (peek()->get_kind() == TokenKind::NUM) {

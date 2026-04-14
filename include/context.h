@@ -103,6 +103,12 @@ public:
         return raw;
     }
 
+    std::string_view  intern_string(std::string str) {
+        auto p = std::make_unique<std::string>(std::move(str));
+        std::string_view view = *p;
+        strings_.push_back(std::move(p));
+        return view;
+    }
 
 private:
     std::vector<std::unique_ptr<Token>> tokens_;
@@ -112,6 +118,7 @@ private:
     std::vector<std::unique_ptr<Type>> types_;
     std::vector<std::unique_ptr<Program>> programs_;
     std::vector<std::unique_ptr<GlobalVariable>> globals_;
+    std::vector<std::unique_ptr<std::string>> strings_;
     Type* ty_int_ = nullptr;
     Type* ty_char_ = nullptr;
 };
